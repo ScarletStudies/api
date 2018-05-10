@@ -1,0 +1,22 @@
+[
+  "tests/test_db.py::test_valid_user_model[me@me.com-asdf-True]",
+  "tests/test_db.py::test_valid_user_model[aslightlylongeremailaddress@aslightlylongerdomain.com-a slightly longer pwhash-False]",
+  "tests/test_db.py::test_invalid_user_model[None-valid-True]",
+  "tests/test_db.py::test_invalid_user_model[valid-None-True]",
+  "tests/test_db.py::test_valid_course_model[cs111-1-1-123]",
+  "tests/test_db.py::test_valid_course_model[cs112-2-2-1234]",
+  "tests/test_db.py::test_invalid_course_model[None-1-1-123]",
+  "tests/test_db.py::test_invalid_course_model[-None-1-123]",
+  "tests/test_db.py::test_invalid_course_model[-1-None-123]",
+  "tests/test_db.py::test_invalid_course_model[-1-1-None]",
+  "tests/test_db.py::test_valid_category_model[Exam]",
+  "tests/test_db.py::test_valid_category_model[Lecture]",
+  "tests/test_db.py::test_invalid_category_model[None]",
+  "tests/test_db.py::test_valid_semester_model[Exam-start_date0-end_date0]",
+  "tests/test_db.py::test_invalid_semester_model[None-start_date0-end_date0]",
+  "tests/test_db.py::test_invalid_semester_model[-None-end_date1]",
+  "tests/test_db.py::test_invalid_semester_model[-start_date2-None]",
+  "tests/test_db.py::test_valid_post_model",
+  "tests/test_db.py::test_valid_comment_model",
+  "tests/test_factory.py::test_config"
+]

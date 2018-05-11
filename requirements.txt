@@ -28,7 +28,5 @@ python-editor==1.0.3
 pytz==2018.4
 six==1.11.0
 SQLAlchemy==1.2.7
-## !! Could not determine repository location
-ssapi==0.0.1
 Werkzeug==0.14.1
 yapf==0.21.0

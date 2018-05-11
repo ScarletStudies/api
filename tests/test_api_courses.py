@@ -7,7 +7,7 @@ from ssapi.apis.course import course_marshal_model
 @pytest.fixture
 def testdata(app):
     with app.app_context():
-        for n in range(0, 1):
+        for n in range(0, 10):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
                             subject='subject%d' % n, course_number='cn%d' % n)
             db.session.add(course)

@@ -56,9 +56,8 @@ class Category(db.Model):
 class Semester(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    name = db.Column(db.String(32), nullable=False)
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
+    year = db.Column(db.Integer, nullable=False)
+    season = db.Column(db.String(16), nullable=False)
 
 
 class PostCheerUserAssociation(db.Model):

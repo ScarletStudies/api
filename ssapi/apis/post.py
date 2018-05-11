@@ -1,8 +1,10 @@
 from flask import abort
 from flask_restplus import Namespace, Resource, fields, reqparse
 from sqlalchemy import desc
+
 from ssapi.db import Post
 from ssapi.apis.category import category_marshal_model
+from ssapi.apis.course import course_marshal_model
 
 api = Namespace('posts', description='Post related operations')
 
@@ -44,8 +46,10 @@ post_marshal_model = api.model('Post', {
     'is_archived': fields.Boolean(required=True,
                                   description='Whether post can be commented on'),
     'category': fields.Nested(model=category_marshal_model,
-                              required=True,
-                              description='Post category')
+                              description='Post category'),
+    'course': fields.Nested(model=course_marshal_model,
+                            required=True,
+                            description='Course to which post belongs')
 })
 
 

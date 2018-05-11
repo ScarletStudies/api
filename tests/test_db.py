@@ -165,41 +165,43 @@ def test_invalid_category_model(app, name):
 ##############
 
 
-@pytest.mark.parametrize(('name', 'start_date', 'end_date'), (
-    ('Exam', date(2018, 1, 1), date(2018, 2, 3)),
-))
-def test_valid_semester_model(app, name, start_date, end_date):
+@pytest.mark.parametrize(
+    ('year', 'season'),
+    (
+        (2018, 'fall'),
+    )
+)
+def test_valid_semester_model(app, year, season):
     with app.app_context():
-        semester = Semester(
-            name=name, start_date=start_date, end_date=end_date)
+        semester = Semester(year=year, season=season)
 
         db.session.add(semester)
         db.session.commit()
 
-        found = Semester.query.filter_by(name=name).first()
+        found = Semester.query.filter_by(year=year, season=season).first()
         assert found is not None
 
-        assert found.name == name
-        assert found.start_date == start_date
-        assert found.end_date == end_date
+        assert found.year == year
+        assert found.season == season
 
 
-@pytest.mark.parametrize(('name', 'start_date', 'end_date'), (
-    (None, date(2018, 1, 1), date(2018, 2, 3)),
-    ('', None, date(2018, 2, 3)),
-    ('', date(2018, 2, 3), None),
-))
-def test_invalid_semester_model(app, name, start_date, end_date):
+@pytest.mark.parametrize(
+    ('year', 'season'),
+    (
+        (None, 'fall'),
+        (2018, None)
+    )
+)
+def test_invalid_semester_model(app, year, season):
     with app.app_context():
-        semester = Semester(
-            name=name, start_date=start_date, end_date=end_date)
+        semester = Semester(year=year, season=season)
 
         with pytest.raises(IntegrityError) as excinfo:
             db.session.add(semester)
             db.session.commit()
 
         db.session.rollback()
-        found = Semester.query.filter_by(name=name).first()
+        found = Semester.query.filter_by(year=year, season=season).first()
         assert found is None
 
         assert 'NOT NULL constraint failed' in str(excinfo)
@@ -217,9 +219,7 @@ def test_valid_post_model(app):
         author = User(email='email', pwhash='pwhash', is_verified=True)
         course = Course(name='name', offering_unit='1',
                         subject='2', course_number='3')
-        semester = Semester(name='name',
-                            start_date=date(2018, 1, 1),
-                            end_date=date(2018, 1, 1))
+        semester = Semester(year=2018, season='fall')
         category = Category(name='name')
 
         db.session.add(author)
@@ -250,7 +250,7 @@ def test_valid_post_model(app):
 
         assert found.course.name == course.name
 
-        assert found.semester.start_date == semester.start_date
+        assert found.semester.year == semester.year
 
         assert found.category.name == category.name
 
@@ -301,9 +301,7 @@ def test_valid_comment_model(app):
         author = User(email='email', pwhash='pwhash', is_verified=True)
         course = Course(name='name', offering_unit='1',
                         subject='2', course_number='3')
-        semester = Semester(name='name',
-                            start_date=date(2018, 1, 1),
-                            end_date=date(2018, 1, 1))
+        semester = Semester(year=2018, season='fall')
         category = Category(name='name')
 
         db.session.add(author)

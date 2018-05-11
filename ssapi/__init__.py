@@ -9,7 +9,8 @@ def create_app(test_config=None):
     app.config.from_mapping(
         SECRET_KEY='dev',
         SQLALCHEMY_DATABASE_URI='sqlite:///' +
-        os.path.join(app.instance_path, 'app.sqlite')
+        os.path.join(app.instance_path, 'app.sqlite'),
+        ERROR_404_HELP=False
     )
 
     if test_config is None:
@@ -28,9 +29,7 @@ def create_app(test_config=None):
     from . import db
     db.init_app(app)
 
-    # a simple page that says hello
-    @app.route('/hello')
-    def hello():
-        return 'Hello, world!'
+    import ssapi.apis as api
+    api.init_app(app)
 
     return app

@@ -1,7 +1,7 @@
 .PHONY: test coverage
 
 test:
-	pytest
+	pytest -s
 
 coverage:
 	coverage run -m pytest

@@ -1,4 +1,3 @@
-from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from sqlalchemy.sql import func
@@ -14,14 +13,12 @@ metadata = MetaData(naming_convention=convention)
 
 
 db = SQLAlchemy(metadata=metadata)
-migrate = Migrate(db=db)
 
 
 def init_app(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
-    migrate.init_app(app)
 
 
 usercourses = db.Table('usercourses',

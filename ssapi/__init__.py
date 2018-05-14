@@ -1,8 +1,9 @@
 import click
 import os
 
-from flask import Flask, current_app
+from flask import Flask
 from flask.cli import with_appcontext
+from flask_cors import CORS
 
 
 def create_app(test_config=None):
@@ -38,6 +39,9 @@ def create_app(test_config=None):
         os.makedirs(app.instance_path)
     except OSError:
         pass
+
+    # CORS
+    CORS(app)
 
     from . import db
     db.init_app(app)

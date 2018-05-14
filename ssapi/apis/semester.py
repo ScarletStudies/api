@@ -1,3 +1,4 @@
+from flask_praetorian import auth_required
 from flask_restplus import Namespace, Resource, fields
 from sqlalchemy import desc
 from ssapi.db import Semester
@@ -16,6 +17,7 @@ semester_marshal_model = api.model('Semester', {
 class SemesterListResource(Resource):
     @api.doc('list_semesters')
     @api.marshal_list_with(semester_marshal_model)
+    @auth_required
     def get(self):
         return Semester.query.order_by(desc(Semester.id)).all()
 
@@ -24,6 +26,7 @@ class SemesterListResource(Resource):
 class PostResource(Resource):
     @api.doc('get_current_semester')
     @api.marshal_with(semester_marshal_model)
+    @auth_required
     def get(self):
         semester = Semester.query.order_by(desc(Semester.id)).first()
 

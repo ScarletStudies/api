@@ -18,8 +18,9 @@ def testdata(app):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_semesters(app, client):
-    rv = client.get('/semesters/')
+def test_get_all_semesters(app, client, test_user):
+    rv = client.get('/semesters/',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -39,8 +40,9 @@ def test_get_all_semesters(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_current_semester(app, client):
-    rv = client.get('/semesters/current')
+def test_get_current_semester(app, client, test_user):
+    rv = client.get('/semesters/current',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 

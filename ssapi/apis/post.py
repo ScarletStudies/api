@@ -1,4 +1,5 @@
 from flask import abort
+from flask_praetorian import auth_required
 from flask_restplus import Namespace, Resource, fields, reqparse
 from sqlalchemy import desc
 
@@ -58,6 +59,7 @@ class PostListResource(Resource):
     @api.doc('list_posts')
     @api.expect(parser)
     @api.marshal_list_with(post_marshal_model)
+    @auth_required
     def get(self):
         args = parser.parse_args()
         filters = []
@@ -92,6 +94,7 @@ class PostListResource(Resource):
 class PostResource(Resource):
     @api.doc('get_post')
     @api.marshal_with(post_marshal_model)
+    @auth_required
     def get(self, id):
         post = Post.query.filter_by(id=id).first()
 

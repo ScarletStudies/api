@@ -25,12 +25,13 @@ def testdata(app):
     )
 )
 @pytest.mark.usefixtures('testdata')
-def test_get_all_courses_with_limit(app, client, limit):
+def test_get_all_courses_with_limit(app, client, test_user, limit):
     with app.app_context():
         courses = Course.query.limit(limit).all()
         courses_json = marshal(courses, course_marshal_model)
 
-    rv = client.get('/courses/?limit=%s' % limit)
+    rv = client.get('/courses/?limit=%s' % limit,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -45,14 +46,15 @@ def test_get_all_courses_with_limit(app, client, limit):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_courses_by_search(app, client):
+def test_get_all_courses_by_search(app, client, test_user):
     query = 'name0'
 
     with app.app_context():
         courses = Course.query.filter(Course.name.like(query)).all()
         courses_json = marshal(courses, course_marshal_model)
 
-    rv = client.get('/courses/?query=%s' % query)
+    rv = client.get('/courses/?query=%s' % query,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -67,12 +69,13 @@ def test_get_all_courses_by_search(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_one_course(app, client):
+def test_get_one_course(app, client, test_user):
     with app.app_context():
         course = Course.query.first()
         course_json = marshal(course, course_marshal_model)
 
-    rv = client.get('/courses/%d' % course.id)
+    rv = client.get('/courses/%d' % course.id,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -82,7 +85,8 @@ def test_get_one_course(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_one_course_error(app, client):
-    rv = client.get('/courses/-1')
+def test_get_one_course_error(app, client, test_user):
+    rv = client.get('/courses/-1',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 404

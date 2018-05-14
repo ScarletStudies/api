@@ -1,24 +1,10 @@
-import pytest
-from ssapi.db import db, User
-from ssapi.praetorian import guard
+from ssapi.db import User
 
 
-@pytest.fixture
-def testdata(app):
-    with app.app_context():
-        user = User(email='test@unittest.com',
-                    password=guard.encrypt_password('password123'))
-
-        db.session.add(user)
-
-        db.session.commit()
-
-
-@pytest.mark.usefixtures('testdata')
-def test_login(app, client):
+def test_login(app, client, test_user):
     data = {
-        'email': 'test@unittest.com',
-        'password': 'password123'
+        'email': test_user.email,
+        'password': test_user.password
     }
 
     rv = client.post('/users/login',
@@ -31,7 +17,7 @@ def test_login(app, client):
     assert json_data is not None
 
     with app.app_context():
-        user = User.query.filter_by(email=data['email']).first()
+        user = User.query.get(test_user.id)
 
     assert user.email == json_data['email']
     assert json_data['jwt'] is not None

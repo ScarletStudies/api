@@ -3,7 +3,8 @@ import tempfile
 
 import pytest
 from ssapi import create_app
-from ssapi.db import db
+from ssapi.db import db, User
+from ssapi.praetorian import guard
 
 
 @pytest.fixture
@@ -32,3 +33,32 @@ def client(app):
 @pytest.fixture
 def runner(app):
     return app.test_cli_runner()
+
+
+@pytest.fixture
+def test_user(app):
+    class TestUser(object):
+        def __init__(self, email, password, id, auth_headers):
+            self.email = email
+            self.password = password
+            self.id = id
+            self.auth_headers = auth_headers
+
+    with app.app_context():
+        email = 'test@unittest.com'
+        password = 'password123'
+
+        user = User(email=email,
+                    password=guard.encrypt_password('password123'))
+
+        db.session.add(user)
+        db.session.commit()
+
+        user.id
+
+        headers = {'Authorization': 'Bearer %s' % guard.encode_jwt_token(user)}
+
+    return TestUser(email=email,
+                    password=password,
+                    id=user.id,
+                    auth_headers=headers)

@@ -15,8 +15,9 @@ def testdata(app):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_categories(app, client):
-    rv = client.get('/categories/')
+def test_get_all_categories(app, client, test_user):
+    rv = client.get('/categories/',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 

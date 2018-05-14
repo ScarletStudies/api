@@ -1,4 +1,5 @@
 from flask import abort
+from flask_praetorian import auth_required
 from flask_restplus import Namespace, Resource, fields, reqparse
 from ssapi.db import Course
 
@@ -31,6 +32,7 @@ class CourseListResource(Resource):
     @api.doc('list_courses')
     @api.expect(parser)
     @api.marshal_list_with(course_marshal_model)
+    @auth_required
     def get(self):
         args = parser.parse_args()
         filters = []
@@ -50,6 +52,7 @@ class CourseListResource(Resource):
 class CourseResource(Resource):
     @api.doc('get_course')
     @api.marshal_with(course_marshal_model)
+    @auth_required
     def get(self, id):
         course = Course.query.filter_by(id=id).first()
 

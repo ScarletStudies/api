@@ -60,8 +60,9 @@ def testdata(app):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_posts(app, client):
-    rv = client.get('/posts/')
+def test_get_all_posts(app, client, test_user):
+    rv = client.get('/posts/',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -80,13 +81,14 @@ def test_get_all_posts(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_posts_for_course(app, client):
+def test_get_all_posts_for_course(app, client, test_user):
     with app.app_context():
         course = Course.query.first()
         posts = Post.query.filter_by(course_id=course.id).all()
         posts_json = marshal(posts, post_marshal_model)
 
-    rv = client.get('/posts/?courses[]=%d' % course.id)
+    rv = client.get('/posts/?courses[]=%d' % course.id,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -101,13 +103,14 @@ def test_get_all_posts_for_course(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_posts_by_category(app, client):
+def test_get_all_posts_by_category(app, client, test_user):
     with app.app_context():
         category = Category.query.first()
         posts = Post.query.filter_by(category_id=category.id).all()
         posts_json = marshal(posts, post_marshal_model)
 
-    rv = client.get('/posts/?categories[]=%d' % category.id)
+    rv = client.get('/posts/?categories[]=%d' % category.id,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -122,14 +125,15 @@ def test_get_all_posts_by_category(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_all_posts_by_search(app, client):
+def test_get_all_posts_by_search(app, client, test_user):
     query = 'content0'
 
     with app.app_context():
         posts = Post.query.filter(Post.content.like(query)).all()
         posts_json = marshal(posts, post_marshal_model)
 
-    rv = client.get('/posts/?query=%s' % query)
+    rv = client.get('/posts/?query=%s' % query,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -153,12 +157,13 @@ def test_get_all_posts_by_search(app, client):
     )
 )
 @pytest.mark.usefixtures('testdata')
-def test_get_all_posts_with_limit(app, client, limit, offset):
+def test_get_all_posts_with_limit(app, client, test_user, limit, offset):
     with app.app_context():
         posts = Post.query.offset(offset).limit(limit).all()
         posts_json = marshal(posts, post_marshal_model)
 
-    rv = client.get('/posts/?offset=%s&limit=%s' % (offset, limit))
+    rv = client.get('/posts/?offset=%s&limit=%s' % (offset, limit),
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -173,12 +178,13 @@ def test_get_all_posts_with_limit(app, client, limit, offset):
 
 
 @pytest.mark.usefixtures('testdata_for_sorting')
-def test_get_all_posts_sort_by_time(app, client):
+def test_get_all_posts_sort_by_time(app, client, test_user):
     with app.app_context():
         posts = Post.query.order_by(desc(Post.timestamp)).all()
         posts_json = marshal(posts, post_marshal_model)
 
-    rv = client.get('/posts/?sort=time')
+    rv = client.get('/posts/?sort=time',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -194,12 +200,13 @@ def test_get_all_posts_sort_by_time(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_one_post(app, client):
+def test_get_one_post(app, client, test_user):
     with app.app_context():
         post = Post.query.first()
         post_json = marshal(post, post_marshal_model)
 
-    rv = client.get('/posts/%d' % post.id)
+    rv = client.get('/posts/%d' % post.id,
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
@@ -209,7 +216,8 @@ def test_get_one_post(app, client):
 
 
 @pytest.mark.usefixtures('testdata')
-def test_get_one_post_error(app, client):
-    rv = client.get('/posts/-1')
+def test_get_one_post_error(app, client, test_user):
+    rv = client.get('/posts/-1',
+                    headers=test_user.auth_headers)
 
     assert rv.status_code == 404

@@ -1,3 +1,4 @@
+from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import MetaData
 from sqlalchemy.sql import func
@@ -13,12 +14,14 @@ metadata = MetaData(naming_convention=convention)
 
 
 db = SQLAlchemy(metadata=metadata)
+migrate = Migrate(db=db)
 
 
 def init_app(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     db.init_app(app)
+    migrate.init_app(app)
 
 
 usercourses = db.Table('usercourses',
@@ -32,10 +35,29 @@ usercourses = db.Table('usercourses',
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
-    email = db.Column(db.String(128), nullable=False)
-    pwhash = db.Column(db.String(128), nullable=False)
+    email = db.Column(db.String(128), nullable=False, unique=True)
+    password = db.Column(db.String(128), nullable=False)
     is_verified = db.Column(db.Boolean, nullable=False, default=False)
     courses = db.relationship('Course', secondary=usercourses)
+
+    @property
+    def rolenames(self):
+        return ['user']
+
+    @classmethod
+    def lookup(cls, email):
+        return cls.query.filter_by(email=email).one_or_none()
+
+    @classmethod
+    def identify(cls, id):
+        return cls.query.get(id)
+
+    @property
+    def identity(self):
+        return self.id
+
+    def is_valid(self):
+        return True
 
 
 class Course(db.Model):

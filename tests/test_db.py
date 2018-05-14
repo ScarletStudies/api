@@ -1,5 +1,4 @@
 import pytest
-from datetime import date
 from sqlalchemy.exc import IntegrityError
 from ssapi.db import db, User, Course, Category, Semester, Post, Comment, \
     PostCheerUserAssociation
@@ -9,14 +8,14 @@ from ssapi.db import db, User, Course, Category, Semester, Post, Comment, \
 ##############
 
 
-@pytest.mark.parametrize(('email', 'pwhash', 'is_verified'), (
+@pytest.mark.parametrize(('email', 'password', 'is_verified'), (
     ('me@me.com', 'asdf', True),
     ('aslightlylongeremailaddress@aslightlylongerdomain.com',
-     'a slightly longer pwhash', False),
+     'a slightly longer password', False),
 ))
-def test_valid_user_model(app, email, pwhash, is_verified):
+def test_valid_user_model(app, email, password, is_verified):
     with app.app_context():
-        user = User(email=email, pwhash=pwhash, is_verified=is_verified)
+        user = User(email=email, password=password, is_verified=is_verified)
 
         db.session.add(user)
         db.session.commit()
@@ -26,7 +25,7 @@ def test_valid_user_model(app, email, pwhash, is_verified):
 
         # test user properties
         assert found.email == email
-        assert found.pwhash == pwhash
+        assert found.password == password
         assert found.is_verified == is_verified
 
         # test courses relationship
@@ -55,13 +54,13 @@ def test_valid_user_model(app, email, pwhash, is_verified):
             assert course in user.courses
 
 
-@pytest.mark.parametrize(('email', 'pwhash', 'is_verified'), (
+@pytest.mark.parametrize(('email', 'password', 'is_verified'), (
     (None, 'valid', True),
     ('valid', None, True)
 ))
-def test_invalid_user_model(app, email, pwhash, is_verified):
+def test_invalid_user_model(app, email, password, is_verified):
     with app.app_context():
-        user = User(email=email, pwhash=pwhash, is_verified=is_verified)
+        user = User(email=email, password=password, is_verified=is_verified)
 
         with pytest.raises(IntegrityError) as excinfo:
             db.session.add(user)
@@ -216,7 +215,7 @@ def test_valid_post_model(app):
         content = 'example post content'
         is_archived = False
 
-        author = User(email='email', pwhash='pwhash', is_verified=True)
+        author = User(email='email', password='password', is_verified=True)
         course = Course(name='name', offering_unit='1',
                         subject='2', course_number='3')
         semester = Semester(year=2018, season='fall')
@@ -298,7 +297,7 @@ def test_valid_comment_model(app):
     with app.app_context():
         content = 'example comment content'
 
-        author = User(email='email', pwhash='pwhash', is_verified=True)
+        author = User(email='email', password='password', is_verified=True)
         course = Course(name='name', offering_unit='1',
                         subject='2', course_number='3')
         semester = Semester(year=2018, season='fall')

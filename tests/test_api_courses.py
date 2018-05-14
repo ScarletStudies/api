@@ -7,7 +7,7 @@ from ssapi.apis.course import course_marshal_model
 @pytest.fixture
 def testdata(app):
     with app.app_context():
-        for n in range(0, 10):
+        for n in range(0, 100):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
                             subject='subject%d' % n, course_number='cn%d' % n)
             db.session.add(course)
@@ -15,9 +15,22 @@ def testdata(app):
         db.session.commit()
 
 
+@pytest.mark.parametrize(
+    ('limit',),
+    (
+        (5,),
+        (10,),
+        (0,),
+        (100,)
+    )
+)
 @pytest.mark.usefixtures('testdata')
-def test_get_all_courses(app, client):
-    rv = client.get('/courses/')
+def test_get_all_courses_with_limit(app, client, limit):
+    with app.app_context():
+        courses = Course.query.limit(limit).all()
+        courses_json = marshal(courses, course_marshal_model)
+
+    rv = client.get('/courses/?limit=%s' % limit)
 
     assert rv.status_code == 200
 
@@ -25,9 +38,27 @@ def test_get_all_courses(app, client):
 
     assert json_data is not None
 
+    assert len(courses_json) == len(json_data)
+
+    for course in courses_json:
+        assert course in json_data
+
+
+@pytest.mark.usefixtures('testdata')
+def test_get_all_courses_by_search(app, client):
+    query = 'name0'
+
     with app.app_context():
-        courses = Course.query.all()
+        courses = Course.query.filter(Course.name.like(query)).all()
         courses_json = marshal(courses, course_marshal_model)
+
+    rv = client.get('/courses/?query=%s' % query)
+
+    assert rv.status_code == 200
+
+    json_data = rv.get_json()
+
+    assert json_data is not None
 
     assert len(courses_json) == len(json_data)
 

@@ -21,10 +21,6 @@ def seed_test_data():
     db.create_all()
 
     courses = [
-        Course(name='Programming I',
-               offering_unit='21',
-               subject='98',
-               course_number='101'),
         Course(name='Programming II',
                offering_unit='21',
                subject='98',

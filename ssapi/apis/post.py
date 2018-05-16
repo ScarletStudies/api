@@ -6,6 +6,8 @@ from sqlalchemy import desc
 from ssapi.db import Post
 from ssapi.apis.category import category_marshal_model
 from ssapi.apis.course import course_marshal_model
+from ssapi.apis.semester import semester_marshal_model
+from ssapi.apis.user import basic_user_marshal_model
 
 api = Namespace('posts', description='Post related operations')
 
@@ -39,9 +41,20 @@ parser.add_argument('sort',
                     location='args',
                     help='Sort by time (desc)')
 
+
 post_marshal_model = api.model('Post', {
-    'id': fields.String(required=True, description='The post id'),
-    'content': fields.String(required=True, description='The post content'),
+    'id': fields.String(required=True,
+                        description='The post id'),
+    'title': fields.String(required=True,
+                           description='The post title'),
+    'content': fields.String(required=True,
+                             description='The post content'),
+    'cheers_count': fields.Integer(required=True,
+                                   description='Number of cheers',
+                                   default=0),
+    'comments_count': fields.Integer(required=True,
+                                     description='Number of comments',
+                                     default=0),
     'timestamp': fields.DateTime(required=True,
                                  description='Creation timestamp'),
     'is_archived': fields.Boolean(required=True,
@@ -50,7 +63,13 @@ post_marshal_model = api.model('Post', {
                               description='Post category'),
     'course': fields.Nested(model=course_marshal_model,
                             required=True,
-                            description='Course to which post belongs')
+                            description='Course to which post belongs'),
+    'semester': fields.Nested(model=semester_marshal_model,
+                              required=True,
+                              description='Post semester'),
+    'author': fields.Nested(model=basic_user_marshal_model,
+                            required=True,
+                            description='Post author'),
 })
 
 

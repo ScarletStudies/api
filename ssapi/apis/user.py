@@ -9,6 +9,10 @@ from .course import course_marshal_model
 api = Namespace('users',
                 description='User related operations')
 
+basic_user_marshal_model = api.model('User', {
+    'email': fields.String(required=True, description='The user email'),
+})
+
 user_marshal_model = api.model('User', {
     'email': fields.String(required=True, description='The user email'),
     'jwt': fields.String(required=True, description='jwt auth')

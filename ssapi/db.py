@@ -94,6 +94,7 @@ class PostCheerUserAssociation(db.Model):
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
+    title = db.Column(db.Text, nullable=False)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, nullable=False,
                           server_default=func.now())
@@ -116,7 +117,15 @@ class Post(db.Model):
 
     comments = db.relationship('Comment')
 
+    @property
+    def comments_count(self):
+        return Comment.query.filter_by(post_id=self.id).count()
+
     cheers = db.relationship('PostCheerUserAssociation')
+
+    @property
+    def cheers_count(self):
+        return PostCheerUserAssociation.query.filter_by(post_id=self.id).count()
 
 
 class Comment(db.Model):
@@ -127,6 +136,7 @@ class Comment(db.Model):
                           server_default=func.now())
 
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    post = db.relationship('Post', uselist=False)
 
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     author = db.relationship('User', uselist=False)

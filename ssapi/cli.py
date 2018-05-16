@@ -13,7 +13,7 @@ def seed_test_data():
     create (and/or reset) the e2e testing database and seed it
     """
     from itertools import chain
-    from .db import db, User, Course, Category, Post, Semester
+    from .db import db, User, Course, Category, Post, Semester, Comment
     from .praetorian import guard
 
     db.drop_all()
@@ -85,24 +85,45 @@ def seed_test_data():
     ]
 
     posts = [
-        Post(content='Hello world',
+        Post(title='I have a title',
+             content='Hello world',
              author=users[0],
              course=courses[0],
              category=categories[0],
              semester=semesters[0]),
-        Post(content='Hello world again',
+        Post(title='I have another title',
+             content='Hello world again',
              author=users[0],
              course=courses[1],
              category=categories[0],
              semester=semesters[0]),
-        Post(content='Hello world thrice',
+        Post(title='I have yet thrice another title',
+             content='Hello world thrice',
              author=users[0],
              course=courses[2],
              category=categories[0],
              semester=semesters[0]),
     ]
 
-    for data in chain(courses, users, categories, semesters, posts):
+    comments = [
+        Comment(content='Comment 1',
+                post=posts[0],
+                author=users[0]),
+        Comment(content='Comment 2',
+                post=posts[0],
+                author=users[0]),
+        Comment(content='Comment 3',
+                post=posts[0],
+                author=users[0]),
+        Comment(content='Comment 4',
+                post=posts[0],
+                author=users[0]),
+        Comment(content='Comment 5',
+                post=posts[0],
+                author=users[0]),
+    ]
+
+    for data in chain(courses, users, categories, semesters, posts, comments):
         db.session.add(data)
 
     db.session.commit()

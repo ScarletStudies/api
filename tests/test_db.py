@@ -212,6 +212,7 @@ def test_invalid_semester_model(app, year, season):
 
 def test_valid_post_model(app):
     with app.app_context():
+        title = 'example title content'
         content = 'example post content'
         is_archived = False
 
@@ -228,7 +229,8 @@ def test_valid_post_model(app):
 
         db.session.commit()
 
-        post = Post(content=content,
+        post = Post(title=title,
+                    content=content,
                     is_archived=is_archived, author_id=author.id,
                     semester_id=semester.id, category_id=category.id,
                     course_id=course.id)
@@ -240,6 +242,7 @@ def test_valid_post_model(app):
         assert found is not None
 
         # test Post object properties
+        assert found.title == title
         assert found.content == content
         assert found.timestamp is not None
         assert found.is_archived == is_archived
@@ -266,6 +269,8 @@ def test_valid_post_model(app):
 
         assert post.comments is not None
         assert len(post.comments) == len(comments)
+        assert post.comments_count == len(comments)
+
         for comment in comments:
             assert comment in post.comments
 
@@ -295,6 +300,7 @@ def test_valid_post_model(app):
 
 def test_valid_comment_model(app):
     with app.app_context():
+        title = 'example title content'
         content = 'example comment content'
 
         author = User(email='email', password='password', is_verified=True)
@@ -310,7 +316,8 @@ def test_valid_comment_model(app):
 
         db.session.commit()
 
-        post = Post(content='example post content',
+        post = Post(title=title,
+                    content='example post content',
                     author_id=author.id, semester_id=semester.id,
                     category_id=category.id, course_id=course.id)
 

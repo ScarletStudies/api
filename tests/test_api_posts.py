@@ -2,7 +2,7 @@ import pytest
 from datetime import datetime
 from flask_restplus import marshal
 from sqlalchemy import desc
-from ssapi.db import db, Post, Course, Category
+from ssapi.db import db, Post, Course, Category, Semester
 from ssapi.apis.post import post_marshal_model
 
 
@@ -20,10 +20,16 @@ def testdata_for_sorting(app):
 
             db.session.add(course)
 
+        for n in range(0, 10):
+            semester = Semester(year=n, season='Fall')
+
+            db.session.add(semester)
+
         db.session.commit()
 
         for n in range(0, 10):
-            post = Post(content='content%d' % n,
+            post = Post(title='title%d' % n,
+                        content='content%d' % n,
                         timestamp=datetime(2018 + n, 1, 1),
                         author_id=n, course_id=n,
                         category_id=n, semester_id=n)
@@ -47,10 +53,16 @@ def testdata(app):
 
             db.session.add(course)
 
+        for n in range(0, 10):
+            semester = Semester(year=n, season='Fall')
+
+            db.session.add(semester)
+
         db.session.commit()
 
         for n in range(0, 10):
-            post = Post(content='content%d' % n,
+            post = Post(title='title%d' % n,
+                        content='content%d' % n,
                         author_id=n, course_id=n,
                         category_id=n, semester_id=n)
 

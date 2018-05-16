@@ -1,9 +1,9 @@
-from flask import abort
-from flask_praetorian import auth_required
-from flask_restplus import Namespace, Resource, fields, reqparse
+from flask import abort, request
+from flask_praetorian import auth_required, current_user
+from flask_restplus import Namespace, Resource, fields, reqparse, marshal
 from sqlalchemy import desc
 
-from ssapi.db import Post
+from ssapi.db import db, Post, Course, Category, Semester
 from ssapi.apis.category import category_marshal_model
 from ssapi.apis.course import course_marshal_model
 from ssapi.apis.semester import semester_marshal_model
@@ -11,36 +11,42 @@ from ssapi.apis.user import basic_user_marshal_model
 
 api = Namespace('posts', description='Post related operations')
 
-parser = reqparse.RequestParser()
+get_posts_parser = reqparse.RequestParser()
 
-parser.add_argument('courses[]',
-                    action='append',
-                    location='args',
-                    help='Filter posts by specifying course ids')
-parser.add_argument('categories[]',
-                    action='append',
-                    location='args',
-                    help='Filter posts by specifying category ids')
-parser.add_argument('query',
-                    type=str,
-                    location='args',
-                    help='Search for posts containing query in content')
-parser.add_argument('limit',
-                    type=int,
-                    default=100,
-                    location='args',
-                    help='Limit number of returned results')
-parser.add_argument('offset',
-                    type=int,
-                    default=0,
-                    location='args',
-                    help='Starting offset of returned results')
-parser.add_argument('sort',
-                    choices=('time',),
-                    default='time',
-                    location='args',
-                    help='Sort by time (desc)')
+get_posts_parser.add_argument('courses[]',
+                              action='append',
+                              location='args',
+                              help='Filter posts by specifying course ids')
+get_posts_parser.add_argument('categories[]',
+                              action='append',
+                              location='args',
+                              help='Filter posts by specifying category ids')
+get_posts_parser.add_argument('query',
+                              type=str,
+                              location='args',
+                              help='Search for posts containing query in content')
+get_posts_parser.add_argument('limit',
+                              type=int,
+                              default=100,
+                              location='args',
+                              help='Limit number of returned results')
+get_posts_parser.add_argument('offset',
+                              type=int,
+                              default=0,
+                              location='args',
+                              help='Starting offset of returned results')
+get_posts_parser.add_argument('sort',
+                              choices=('time',),
+                              default='time',
+                              location='args',
+                              help='Sort by time (desc)')
 
+new_post_marshal_model = api.model('New Post Model', {
+    'title': fields.String(required=True, description='Post title'),
+    'content': fields.String(required=True, description='Post content'),
+    'category_id': fields.String(required=True, description='Post category, by id'),
+    'course_id': fields.String(required=True, description='Post course, by id')
+})
 
 post_marshal_model = api.model('Post', {
     'id': fields.String(required=True,
@@ -76,11 +82,11 @@ post_marshal_model = api.model('Post', {
 @api.route('/')
 class PostListResource(Resource):
     @api.doc('list_posts')
-    @api.expect(parser)
+    @api.expect(get_posts_parser)
     @api.marshal_list_with(post_marshal_model)
     @auth_required
     def get(self):
-        args = parser.parse_args()
+        args = get_posts_parser.parse_args()
         filters = []
 
         if args['courses[]'] is not None:
@@ -106,6 +112,38 @@ class PostListResource(Resource):
                    .offset(offset) \
                    .all()
 
+    @api.doc('new_post')
+    @api.expect(new_post_marshal_model)
+    @auth_required
+    def post(self):
+        data = marshal(request.get_json(), new_post_marshal_model)
+
+        title = data['title']
+        content = data['content']
+
+        # validate data
+        category = Category.query.get(data['category_id'])
+        if category is None:
+            return abort(400, 'Category does not exist')
+
+        course = Course.query.get(data['course_id'])
+        if course is None:
+            return abort(400, 'Course does not exist')
+
+        semester = Semester.query.order_by(desc(Semester.id)).first()
+
+        post = Post(title=title,
+                    content=content,
+                    category=category,
+                    course=course,
+                    author=current_user(),
+                    semester=semester)
+
+        db.session.add(post)
+        db.session.commit()
+
+        return 'OK', 201
+
 
 @api.route('/<int:id>')
 @api.param('id', 'The post id')
@@ -120,4 +158,4 @@ class PostResource(Resource):
         if post is not None:
             return post
 
-        abort(404, "Post {} doesn't exist".format(id))
+        abort(404, 'Post doesn not exist')

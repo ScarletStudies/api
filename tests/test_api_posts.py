@@ -233,3 +233,41 @@ def test_get_one_post_error(app, client, test_user):
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 404
+
+
+@pytest.mark.usefixtures('testdata')
+def test_add_post(app, client, test_user):
+    data = {
+        'title': 'title',
+        'content': 'content',
+        'category_id': 1,
+        'course_id': 1
+    }
+
+    rv = client.post('/posts/',
+                     json=data,
+                     headers=test_user.auth_headers)
+
+    assert rv.status_code == 201
+
+    json_data = rv.get_json()
+
+    assert json_data is not None
+
+    with app.app_context():
+        post = Post.query \
+            .filter_by(title=data['title'], content=data['content']) \
+            .first()
+
+        # load relationships within session/app context
+
+        # confirm expected default values
+        assert post.comments_count == 0
+        assert post.cheers_count == 0
+        assert len(post.comments) == 0
+        assert post.semester is not None
+
+        # confirm relationships
+        assert post.category.id == data['category_id']
+        assert post.course.id == data['course_id']
+        assert post.author.id == test_user.id

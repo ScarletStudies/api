@@ -7,6 +7,7 @@ from .category import api as ns2
 from .post import api as ns3
 from .semester import api as ns4
 from .user import api as ns5
+from .comment import api as ns6
 
 authorizations = {
     'apikey': {
@@ -29,6 +30,7 @@ api.add_namespace(ns2)
 api.add_namespace(ns3)
 api.add_namespace(ns4)
 api.add_namespace(ns5)
+api.add_namespace(ns6)
 
 
 def init_app(app):

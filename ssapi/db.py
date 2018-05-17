@@ -31,6 +31,13 @@ usercourses = db.Table('usercourses',
                            'course.id'), primary_key=True)
                        )
 
+userpostcheers = db.Table('userpostcheers',
+                          db.Column('user_id', db.Integer, db.ForeignKey(
+                              'user.id'), primary_key=True),
+                          db.Column('post_id', db.Integer, db.ForeignKey(
+                              'post.id'), primary_key=True)
+                          )
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,15 +89,6 @@ class Semester(db.Model):
     season = db.Column(db.String(16), nullable=False)
 
 
-class PostCheerUserAssociation(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-
-    user_id = db.Column(db.Integer, db.ForeignKey(
-        'user.id'), nullable=False)
-    post_id = db.Column(db.Integer, db.ForeignKey(
-        'post.id'), nullable=False)
-
-
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -116,16 +114,15 @@ class Post(db.Model):
     category = db.relationship('Category', uselist=False)
 
     comments = db.relationship('Comment')
+    cheers = db.relationship('User', secondary=userpostcheers)
 
     @property
     def comments_count(self):
         return Comment.query.filter_by(post_id=self.id).count()
 
-    cheers = db.relationship('PostCheerUserAssociation')
-
     @property
     def cheers_count(self):
-        return PostCheerUserAssociation.query.filter_by(post_id=self.id).count()
+        return len(self.cheers)
 
 
 class Comment(db.Model):

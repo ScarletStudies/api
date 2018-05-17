@@ -186,3 +186,20 @@ class CommentListResource(Resource):
         db.session.commit()
 
         return 'OK', 201
+
+
+@api.route('/<int:id>/cheers/')
+@api.param('id', 'The post id')
+class CheerListResource(Resource):
+    @api.doc('new_cheer')
+    @auth_required
+    def post(self, id):
+        post = Post.query.get(id)
+        user = current_user()
+
+        if user not in post.cheers:
+            post.cheers.append(user)
+
+        db.session.commit()
+
+        return 'OK', 201

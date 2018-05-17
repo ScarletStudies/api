@@ -335,3 +335,21 @@ def test_add_comment(app, client, test_user, testdata_for_add_comment):
 
         assert len(post.comments) == 1
         assert post.comments[0].content == data['content']
+
+
+def test_add_cheer(app, client, test_user, testdata_for_comments):
+    post_id = testdata_for_comments
+
+    rv = client.post('/posts/%d/cheers/' % post_id,
+                     headers=test_user.auth_headers)
+
+    assert rv.status_code == 201
+
+    with app.app_context():
+        post = Post.query.get(post_id)
+
+        assert len(post.cheers) == 1
+        assert post.cheers_count == 1
+
+        # post.cheers is a relationship to a user
+        assert post.cheers[0].id == test_user.id

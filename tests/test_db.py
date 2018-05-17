@@ -1,7 +1,6 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
-from ssapi.db import db, User, Course, Category, Semester, Post, Comment, \
-    PostCheerUserAssociation
+from ssapi.db import db, User, Course, Category, Semester, Post, Comment
 
 ################
 # User Model
@@ -275,19 +274,22 @@ def test_valid_post_model(app):
             assert comment in post.comments
 
         # test cheers
-        cheers = [
-            PostCheerUserAssociation(post_id=post.id, user_id=author.id)
-            for _ in range(0, 100)
+        users = [
+            User(email='%d' % n, password='123')
+            for n in range(0, 100)
         ]
 
-        for cheer in cheers:
-            db.session.add(cheer)
+        for user in users:
+            db.session.add(user)
+            post.cheers.append(user)
 
         db.session.commit()
 
         assert post.cheers is not None
-        assert len(post.cheers) == len(cheers)
-        for cheer in cheers:
+        assert len(post.cheers) == len(users)
+        assert post.cheers_count == len(users)
+
+        for cheer in users:
             assert cheer in post.cheers
 
 # TODO test invalid

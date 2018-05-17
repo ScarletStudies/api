@@ -3,11 +3,13 @@ from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
 from sqlalchemy import desc
 
-from ssapi.db import db, Post, Course, Category, Semester
-from ssapi.apis.category import category_marshal_model
-from ssapi.apis.course import course_marshal_model
-from ssapi.apis.semester import semester_marshal_model
-from ssapi.apis.user import basic_user_marshal_model
+from ssapi.db import db, Post, Course, Category, Semester, Comment
+
+from .category import category_marshal_model
+from .comment import comment_marshal_model, new_comment_marshal_model
+from .course import course_marshal_model
+from .semester import semester_marshal_model
+from .user import basic_user_marshal_model
 
 api = Namespace('posts', description='Post related operations')
 
@@ -76,6 +78,12 @@ post_marshal_model = api.model('Post', {
     'author': fields.Nested(model=basic_user_marshal_model,
                             required=True,
                             description='Post author'),
+})
+
+post_with_comments_marshal_model = api.inherit('Post with Comments', post_marshal_model, {
+    'comments': fields.Nested(comment_marshal_model,
+                              required=True,
+                              description='List of comments for post')
 })
 
 
@@ -150,7 +158,7 @@ class PostListResource(Resource):
 @api.response(404, 'Post not found')
 class PostResource(Resource):
     @api.doc('get_post')
-    @api.marshal_with(post_marshal_model)
+    @api.marshal_with(post_with_comments_marshal_model)
     @auth_required
     def get(self, id):
         post = Post.query.filter_by(id=id).first()
@@ -158,4 +166,23 @@ class PostResource(Resource):
         if post is not None:
             return post
 
-        abort(404, 'Post doesn not exist')
+        abort(404, 'Post does not exist')
+
+
+@api.route('/<int:id>/comments/')
+@api.param('id', 'The post id')
+class CommentListResource(Resource):
+    @api.doc('new_comment')
+    @api.expect(new_comment_marshal_model)
+    @auth_required
+    def post(self, id):
+        data = marshal(request.get_json(), new_comment_marshal_model)
+
+        comment = Comment(content=data['content'],
+                          post_id=id,
+                          author=current_user())
+
+        db.session.add(comment)
+        db.session.commit()
+
+        return 'OK', 201

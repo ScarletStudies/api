@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime
 from flask_restplus import marshal
 from sqlalchemy import desc
-from ssapi.db import db, Post, Course, Category, Semester
-from ssapi.apis.post import post_marshal_model
+from ssapi.db import db, Post, Course, Category, Semester, Comment
+from ssapi.apis.post import post_marshal_model, post_with_comments_marshal_model
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def testdata_for_sorting(app):
 
 
 @pytest.fixture
-def testdata(app):
+def testdata(app, test_user):
     with app.app_context():
         for n in range(0, 10):
             category = Category(name='name%d' % n)
@@ -69,6 +69,45 @@ def testdata(app):
             db.session.add(post)
 
         db.session.commit()
+
+
+@pytest.fixture
+def testdata_for_comments(app, test_user):
+    with app.app_context():
+        post = Post(title='title',
+                    content='content',
+                    author_id=0, course_id=0,
+                    category_id=0, semester_id=0)
+
+        db.session.add(post)
+
+        for n in range(0, 100):
+            comment = Comment(content='content%d' % n,
+                              post=post,
+                              author_id=test_user.id)
+
+            db.session.add(comment)
+
+        db.session.commit()
+
+        return post.id
+
+
+@pytest.fixture
+def testdata_for_add_comment(app, test_user):
+    with app.app_context():
+        post = Post(title='title',
+                    content='content',
+                    author_id=0, course_id=0,
+                    category_id=0, semester_id=0)
+
+        post.comments = []
+
+        db.session.add(post)
+
+        db.session.commit()
+
+        return post.id
 
 
 @pytest.mark.usefixtures('testdata')
@@ -211,11 +250,13 @@ def test_get_all_posts_sort_by_time(app, client, test_user):
         assert json_data[i] == posts_json[i]
 
 
-@pytest.mark.usefixtures('testdata')
-def test_get_one_post(app, client, test_user):
+def test_get_one_post(app, client, test_user, testdata_for_comments):
+    post_id = testdata_for_comments
+
     with app.app_context():
-        post = Post.query.first()
-        post_json = marshal(post, post_marshal_model)
+        # this post id has many comments associated with it
+        post = Post.query.get(post_id)
+        post_json = marshal(post, post_with_comments_marshal_model)
 
     rv = client.get('/posts/%d' % post.id,
                     headers=test_user.auth_headers)
@@ -225,6 +266,8 @@ def test_get_one_post(app, client, test_user):
     json_data = rv.get_json()
 
     assert json_data == post_json
+
+    assert len(json_data['comments']) == len(post.comments)
 
 
 @pytest.mark.usefixtures('testdata')
@@ -271,3 +314,24 @@ def test_add_post(app, client, test_user):
         assert post.category.id == data['category_id']
         assert post.course.id == data['course_id']
         assert post.author.id == test_user.id
+
+
+def test_add_comment(app, client, test_user, testdata_for_add_comment):
+    # this post id has no comments
+    post_id = testdata_for_add_comment
+
+    data = {
+        'content': 'Example comment content'
+    }
+
+    rv = client.post('/posts/%d/comments/' % post_id,
+                     json=data,
+                     headers=test_user.auth_headers)
+
+    assert rv.status_code == 201
+
+    with app.app_context():
+        post = Post.query.get(post_id)
+
+        assert len(post.comments) == 1
+        assert post.comments[0].content == data['content']

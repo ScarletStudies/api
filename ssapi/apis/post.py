@@ -202,8 +202,27 @@ class CommentListResource(Resource):
     @auth_required
     def post(self, id):
         data = marshal(request.get_json(), new_comment_marshal_model)
+        content = data['content']
 
-        comment = Comment(content=data['content'],
+        content = bleach.clean(
+            content,
+            tags=[
+                'p',
+                'h1',
+                'h2',
+                'br',
+                's',
+                'u',
+                *bleach.sanitizer.ALLOWED_TAGS
+            ],
+            strip=True
+        )
+
+        content = bleach.linkify(
+            content
+        )
+
+        comment = Comment(content=content,
                           post_id=id,
                           author=current_user())
 

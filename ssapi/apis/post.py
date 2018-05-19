@@ -1,3 +1,4 @@
+import bleach
 from flask import abort, request
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
@@ -87,6 +88,12 @@ post_with_comments_marshal_model = api.inherit('Post with Comments', post_marsha
 })
 
 
+def linkify(attrs, new=False):
+    attrs[(None, 'target')] = '_blank'
+    attrs[(None, 'rel')] = 'nofollow'
+    return attrs
+
+
 @api.route('/')
 class PostListResource(Resource):
     @api.doc('list_posts')
@@ -128,6 +135,24 @@ class PostListResource(Resource):
 
         title = data['title']
         content = data['content']
+
+        content = bleach.clean(
+            content,
+            tags=[
+                'p',
+                'h1',
+                'h2',
+                'br',
+                's',
+                'u',
+                *bleach.sanitizer.ALLOWED_TAGS
+            ],
+            strip=True
+        )
+
+        content = bleach.linkify(
+            content
+        )
 
         # validate data
         category = Category.query.get(data['category_id'])

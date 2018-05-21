@@ -9,20 +9,14 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY='dev',
-        SQLALCHEMY_DATABASE_URI='postgresql+psycopg2://test:test@db/postgres',
+        SQLALCHEMY_DATABASE_URI='sqlite:///' +
+        os.path.join(app.instance_path, 'app.sqlite'),
         ERROR_404_HELP=False,
         JWT_ACCESS_LIFESPAN={'hours': 24},
         JWT_REFRESH_LIFESPAN={'days': 30}
     )
 
-    # load the config from env var
-    if os.environ.get('e2e', False):
-        e2e_db_path = '/tmp/ssapi/e2e.db'
-        try:
-            os.makedirs(e2e_db_path)
-        except OSError:
-            pass
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + e2e_db_path
+    print('database located at', os.path.join(app.instance_path, 'app.sqlite'))
 
     if test_config is None:
         # load the instance config, if it exists, when not testing

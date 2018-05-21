@@ -6,8 +6,8 @@ pip-selfcheck.json
 
 .idea/
 
-# postgres volume data
-postgres-data/
+# sqlite persisted docker volume data
+database/
 
 # pytest
 .pytest_cache/

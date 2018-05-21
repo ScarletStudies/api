@@ -1,4 +1,8 @@
 #! /usr/bin/env bash
 
-# Let the DB start
-sleep 10;
+# initialize the database
+flask db upgrade
+
+# seed test data
+flask seed_test_data
+

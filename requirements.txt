@@ -27,6 +27,7 @@ parso==0.2.0
 passlib==1.7.1
 pendulum==2.0.1
 pluggy==0.6.0
+psycopg2-binary==2.7.4
 py==1.5.3
 py-buzz==0.3.4
 pycodestyle==2.3.1
@@ -40,7 +41,6 @@ pytz==2018.4
 pytzdata==2018.5
 six==1.11.0
 SQLAlchemy==1.2.7
--e git+https://github.com/ScarletStudies/api.git@6c0c1013113ebfe714aee086b7f0b88a196988a0#egg=ssapi
 webencodings==0.5.1
 Werkzeug==0.14.1
 yapf==0.21.0

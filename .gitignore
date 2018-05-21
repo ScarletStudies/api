@@ -6,6 +6,9 @@ pip-selfcheck.json
 
 .idea/
 
+# postgres volume data
+postgres-data/
+
 # pytest
 .pytest_cache/
 

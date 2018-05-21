@@ -1,7 +1,7 @@
 import os
 import tempfile
-
 import pytest
+from functools import namedtuple
 from ssapi import create_app
 from ssapi.db import db, User
 from ssapi.praetorian import guard
@@ -37,12 +37,9 @@ def runner(app):
 
 @pytest.fixture
 def test_user(app):
-    class TestUser(object):
-        def __init__(self, email, password, id, auth_headers):
-            self.email = email
-            self.password = password
-            self.id = id
-            self.auth_headers = auth_headers
+    TestUser = namedtuple(
+        'TestUser', ['email', 'password', 'id', 'auth_headers']
+    )
 
     with app.app_context():
         email = 'test@unittest.com'

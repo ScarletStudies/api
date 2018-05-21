@@ -86,23 +86,12 @@ def seed_test_data():
 
     posts = [
         Post(title='I have a title',
-             content='Hello world',
+             content='Hello world, {}'.format(course.name),
              author=users[0],
-             course=courses[0],
+             course=course,
              category=categories[0],
-             semester=semesters[0]),
-        Post(title='I have another title',
-             content='Hello world again',
-             author=users[0],
-             course=courses[1],
-             category=categories[0],
-             semester=semesters[0]),
-        Post(title='I have yet thrice another title',
-             content='Hello world thrice',
-             author=users[0],
-             course=courses[2],
-             category=categories[0],
-             semester=semesters[0]),
+             semester=semesters[0])
+        for course in courses
     ]
 
     comments = [

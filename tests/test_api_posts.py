@@ -1,201 +1,142 @@
 import pytest
 from datetime import datetime
 from flask_restplus import marshal
-from sqlalchemy import desc
-from ssapi.db import db, Post, Course, Category, Semester, Comment
-from ssapi.apis.post import post_marshal_model, post_with_comments_marshal_model
+from ssapi.db import db, Post, Course, Category, Semester
+
+from ssapi.apis.post import post_marshal_model
+from ssapi.apis.category import category_marshal_model
+from ssapi.apis.course import course_marshal_model
+from ssapi.apis.semester import semester_marshal_model
 
 
 @pytest.fixture
-def testdata_for_sorting(app):
+def testdata_posts(app, test_user):
     with app.app_context():
-        for n in range(0, 10):
+        # create categories
+        categories = []
+        for n in range(0, 50):
             category = Category(name='name%d' % n)
-
+            categories.append(category)
             db.session.add(category)
 
-        for n in range(0, 10):
+        # create courses
+        courses = []
+        for n in range(0, 50):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
                             subject='subject%d' % n, course_number='cn%d' % n)
-
+            courses.append(course)
             db.session.add(course)
 
-        for n in range(0, 10):
+        # create semesters
+        semesters = []
+        for n in range(0, 50):
             semester = Semester(year=n, season='Fall')
-
+            semesters.append(semester)
             db.session.add(semester)
 
-        db.session.commit()
-
-        for n in range(0, 10):
+        # create posts
+        posts = []
+        for n in range(0, 50):
             post = Post(title='title%d' % n,
                         content='content%d' % n,
                         timestamp=datetime(2018 + n, 1, 1),
-                        author_id=n, course_id=n,
-                        category_id=n, semester_id=n)
+                        author_id=test_user.id,
+                        course=courses[n],
+                        category=categories[n],
+                        semester=semesters[n])
 
+            posts.append(post)
             db.session.add(post)
 
         db.session.commit()
 
+        posts_json = marshal(posts, post_marshal_model)
+        categories_json = marshal(categories, category_marshal_model)
+        semesters_json = marshal(semesters, semester_marshal_model)
+        courses_json = marshal(courses, course_marshal_model)
 
-@pytest.fixture
-def testdata(app, test_user):
-    with app.app_context():
-        for n in range(0, 10):
-            category = Category(name='name%d' % n)
-
-            db.session.add(category)
-
-        for n in range(0, 10):
-            course = Course(name='name%d' % n, offering_unit='ou%d' % n,
-                            subject='subject%d' % n, course_number='cn%d' % n)
-
-            db.session.add(course)
-
-        for n in range(0, 10):
-            semester = Semester(year=n, season='Fall')
-
-            db.session.add(semester)
-
-        db.session.commit()
-
-        for n in range(0, 10):
-            post = Post(title='title%d' % n,
-                        content='content%d' % n,
-                        author_id=n, course_id=n,
-                        category_id=n, semester_id=n)
-
-            db.session.add(post)
-
-        db.session.commit()
+        return posts_json, courses_json, categories_json, semesters_json
 
 
-@pytest.fixture
-def testdata_for_comments(app, test_user):
-    with app.app_context():
-        post = Post(title='title',
-                    content='content',
-                    author_id=0, course_id=0,
-                    category_id=0, semester_id=0)
+def test_get_all_posts(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
 
-        db.session.add(post)
-
-        for n in range(0, 100):
-            comment = Comment(content='content%d' % n,
-                              post=post,
-                              author_id=test_user.id)
-
-            db.session.add(comment)
-
-        db.session.commit()
-
-        return post.id
-
-
-@pytest.fixture
-def testdata_for_add_comment(app, test_user):
-    with app.app_context():
-        post = Post(title='title',
-                    content='content',
-                    author_id=0, course_id=0,
-                    category_id=0, semester_id=0)
-
-        post.comments = []
-
-        db.session.add(post)
-
-        db.session.commit()
-
-        return post.id
-
-
-@pytest.mark.usefixtures('testdata')
-def test_get_all_posts(app, client, test_user):
+    # hit the api
     rv = client.get('/posts/',
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
+    # returns the posts
     json_data = rv.get_json()
 
-    assert json_data is not None
+    # sorts posts by time by default
+    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
 
-    with app.app_context():
-        posts = Post.query.all()
-        posts_json = marshal(posts, post_marshal_model)
+    # returns 100 posts max by default
+    posts_json = posts_json[:100]
 
-    assert len(posts_json) == len(json_data)
-
-    for post in posts_json:
-        assert post in json_data
+    assert posts_json == json_data
 
 
-@pytest.mark.usefixtures('testdata')
-def test_get_all_posts_for_course(app, client, test_user):
-    with app.app_context():
-        course = Course.query.first()
-        posts = Post.query.filter_by(course_id=course.id).all()
-        posts_json = marshal(posts, post_marshal_model)
+def test_get_all_posts_for_course(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
+    target_course = testdata_posts[1][0]
 
-    rv = client.get('/posts/?courses[]=%d' % course.id,
+    # hit the api
+    rv = client.get('/posts/?courses[]={}'.format(target_course['id']),
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
+    # returns the posts
     json_data = rv.get_json()
 
-    assert json_data is not None
+    # posts should be limited to the target course
+    posts_json = [p for p in posts_json if p['course']
+                  ['id'] == target_course['id']]
 
-    assert len(posts_json) == len(json_data)
-
-    for post in posts_json:
-        assert post in json_data
+    assert json_data == posts_json
 
 
-@pytest.mark.usefixtures('testdata')
-def test_get_all_posts_by_category(app, client, test_user):
-    with app.app_context():
-        category = Category.query.first()
-        posts = Post.query.filter_by(category_id=category.id).all()
-        posts_json = marshal(posts, post_marshal_model)
+def test_get_all_posts_by_category(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
+    target_category = testdata_posts[2][0]
 
-    rv = client.get('/posts/?categories[]=%d' % category.id,
+    # hit the api
+    rv = client.get('/posts/?categories[]={}'.format(target_category['id']),
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
+    # returns the posts
     json_data = rv.get_json()
 
-    assert json_data is not None
+    # posts should be limited to the target category
+    posts_json = [p for p in posts_json if p['category']
+                  ['id'] == target_category['id']]
 
-    assert len(posts_json) == len(json_data)
-
-    for post in posts_json:
-        assert post in json_data
+    assert posts_json == json_data
 
 
-@pytest.mark.usefixtures('testdata')
-def test_get_all_posts_by_search(app, client, test_user):
-    query = 'content0'
+def test_get_all_posts_by_search(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
 
-    with app.app_context():
-        posts = Post.query.filter(Post.content.like(query)).all()
-        posts_json = marshal(posts, post_marshal_model)
+    content_query = posts_json[0]['content']
 
-    rv = client.get('/posts/?query=%s' % query,
+    # hit the api
+    rv = client.get('/posts/?query={}'.format(content_query),
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
+    # returns the posts
     json_data = rv.get_json()
 
-    assert json_data is not None
+    # posts should be limited by search
+    posts_json = [p for p in posts_json if content_query in p['content']]
 
-    assert len(posts_json) == len(json_data)
-
-    for post in posts_json:
-        assert post in json_data
+    assert posts_json == json_data
 
 
 @pytest.mark.parametrize(
@@ -207,149 +148,139 @@ def test_get_all_posts_by_search(app, client, test_user):
         (5, 5)
     )
 )
-@pytest.mark.usefixtures('testdata')
-def test_get_all_posts_with_limit(app, client, test_user, limit, offset):
-    with app.app_context():
-        posts = Post.query.offset(offset).limit(limit).all()
-        posts_json = marshal(posts, post_marshal_model)
+def test_get_all_posts_with_limit(app, client, test_user, limit, offset, testdata_posts):
+    posts_json = testdata_posts[0]
 
+    # hit the api
     rv = client.get('/posts/?offset=%s&limit=%s' % (offset, limit),
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
+    # returns the posts
     json_data = rv.get_json()
 
-    assert json_data is not None
+    # sorts posts by time by default
+    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
 
-    assert len(posts_json) == len(json_data)
+    # posts should be limited by limit and offset
+    posts_json = posts_json[offset:offset+limit]
 
-    for post in posts_json:
-        assert post in json_data
-
-
-@pytest.mark.usefixtures('testdata_for_sorting')
-def test_get_all_posts_sort_by_time(app, client, test_user):
-    with app.app_context():
-        posts = Post.query.order_by(desc(Post.timestamp)).all()
-        posts_json = marshal(posts, post_marshal_model)
-
-    rv = client.get('/posts/?sort=time',
-                    headers=test_user.auth_headers)
-
-    assert rv.status_code == 200
-
-    json_data = rv.get_json()
-
-    assert json_data is not None
-
-    assert len(posts_json) == len(json_data)
-
-    # test same order
-    for i in range(0, len(posts_json)):
-        assert json_data[i] == posts_json[i]
+    assert posts_json == json_data
 
 
-def test_get_one_post(app, client, test_user, testdata_for_comments):
-    post_id = testdata_for_comments
+def test_add_post(app, client, test_user, testdata_posts):
+    target_course = testdata_posts[1][0]
+    target_category = testdata_posts[2][0]
+    target_semester = testdata_posts[3][-1]
 
-    with app.app_context():
-        # this post id has many comments associated with it
-        post = Post.query.get(post_id)
-        post_json = marshal(post, post_with_comments_marshal_model)
-
-    rv = client.get('/posts/%d' % post.id,
-                    headers=test_user.auth_headers)
-
-    assert rv.status_code == 200
-
-    json_data = rv.get_json()
-
-    assert json_data == post_json
-
-    assert len(json_data['comments']) == len(post.comments)
-
-
-@pytest.mark.usefixtures('testdata')
-def test_get_one_post_error(app, client, test_user):
-    rv = client.get('/posts/-1',
-                    headers=test_user.auth_headers)
-
-    assert rv.status_code == 404
-
-
-@pytest.mark.usefixtures('testdata')
-def test_add_post(app, client, test_user):
     data = {
         'title': 'title',
-        'content': 'content',
-        'category_id': 1,
-        'course_id': 1
+        'content': '<p>content</p>',
+        'category': {
+            'id': target_category['id']
+        },
+        'course': {
+            'id': target_course['id']
+        }
     }
 
+    # hit the api
     rv = client.post('/posts/',
                      json=data,
                      headers=test_user.auth_headers)
 
     assert rv.status_code == 201
 
+    # returns the new post
     json_data = rv.get_json()
 
-    assert json_data is not None
-
-    with app.app_context():
-        post = Post.query \
-            .filter_by(title=data['title'], content=data['content']) \
-            .first()
-
-        # load relationships within session/app context
-
-        # confirm expected default values
-        assert post.comments_count == 0
-        assert post.cheers_count == 0
-        assert len(post.comments) == 0
-        assert post.semester is not None
-
-        # confirm relationships
-        assert post.category.id == data['category_id']
-        assert post.course.id == data['course_id']
-        assert post.author.id == test_user.id
-
-
-def test_add_comment(app, client, test_user, testdata_for_add_comment):
-    # this post id has no comments
-    post_id = testdata_for_add_comment
-
-    data = {
-        'content': 'Example comment content'
+    expected = {
+        'title': 'title',
+        'content': '<p>content</p>',
+        'category': target_category,
+        'course': target_course,
+        'comments': [],
+        'cheers': [],
+        'author': {
+            'email': test_user.email
+        },
+        'semester': target_semester,
+        'is_archived': False
     }
 
-    rv = client.post('/posts/%d/comments/' % post_id,
+    assert all(json_data[k] == v for k, v in expected.items())
+
+
+def test_add_comment(app, client, test_user, testdata_posts):
+    target_post = testdata_posts[0][0]
+
+    data = {
+        'content': '<p>Example comment content</p>'
+    }
+
+    # hit the api
+    rv = client.post('/posts/{}/comments/'.format(target_post['id']),
                      json=data,
                      headers=test_user.auth_headers)
 
     assert rv.status_code == 201
 
-    with app.app_context():
-        post = Post.query.get(post_id)
+    # returns the updated post
+    json_data = rv.get_json()
 
-        assert len(post.comments) == 1
-        assert post.comments[0].content == data['content']
+    # post remains unchanged except for comments
+    expected = {
+        'title': target_post['title'],
+        'content': target_post['content'],
+        'category': target_post['category'],
+        'cheers': [],
+        'author': {
+            'email': test_user.email
+        },
+        'semester': target_post['semester'],
+        'is_archived': False
+    }
+
+    assert all(json_data[k] == v for k, v in expected.items())
+
+    expected_comment = {
+        'content': '<p>Example comment content</p>',
+        'author': {
+            'email': test_user.email
+        }
+    }
+
+    assert all(json_data['comments'][0][k] ==
+               v for k, v in expected_comment.items())
 
 
-def test_add_cheer(app, client, test_user, testdata_for_comments):
-    post_id = testdata_for_comments
+def test_add_cheer(app, client, test_user, testdata_posts):
+    target_post = testdata_posts[0][0]
 
-    rv = client.post('/posts/%d/cheers/' % post_id,
+    # hit the api
+    rv = client.post('/posts/{}/cheers/'.format(target_post['id']),
                      headers=test_user.auth_headers)
 
     assert rv.status_code == 201
 
-    with app.app_context():
-        post = Post.query.get(post_id)
+    # returns the updated post
+    json_data = rv.get_json()
 
-        assert len(post.cheers) == 1
-        assert post.cheers_count == 1
+    # post remains unchanged except for comments
+    expected = {
+        'title': target_post['title'],
+        'content': target_post['content'],
+        'category': target_post['category'],
+        'cheers': [{
+            'email': test_user.email
+        }],
+        'comments': [],
+        'author': {
+            'email': test_user.email
+        },
+        'semester': target_post['semester'],
+        'is_archived': False
+    }
 
-        # post.cheers is a relationship to a user
-        assert post.cheers[0].id == test_user.id
+    assert all(json_data[k] == v for k, v in expected.items())

@@ -45,7 +45,9 @@ class User(db.Model):
     email = db.Column(db.String(128), nullable=False, unique=True)
     password = db.Column(db.String(128), nullable=False)
     is_verified = db.Column(db.Boolean, nullable=False, default=False)
-    courses = db.relationship('Course', secondary=usercourses)
+    courses = db.relationship(
+        'Course', secondary=usercourses, order_by='Course.name'
+    )
 
     @property
     def rolenames(self):

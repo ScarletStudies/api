@@ -47,8 +47,8 @@ get_posts_parser.add_argument('sort',
 new_post_marshal_model = api.model('New Post Model', {
     'title': fields.String(required=True, description='Post title'),
     'content': fields.String(required=True, description='Post content'),
-    'category_id': fields.String(required=True, description='Post category, by id'),
-    'course_id': fields.String(required=True, description='Post course, by id')
+    'category': fields.Nested(category_marshal_model, description='Only checking for id'),
+    'course': fields.Nested(course_marshal_model, description='Only checking for id')
 })
 
 post_marshal_model = api.model('Post', {
@@ -58,12 +58,12 @@ post_marshal_model = api.model('Post', {
                            description='The post title'),
     'content': fields.String(required=True,
                              description='The post content'),
-    'cheers_count': fields.Integer(required=True,
-                                   description='Number of cheers',
-                                   default=0),
-    'comments_count': fields.Integer(required=True,
-                                     description='Number of comments',
-                                     default=0),
+    'cheers': fields.Nested(model=basic_user_marshal_model,
+                            required=True,
+                            description='Number of cheers'),
+    'comments': fields.Nested(comment_marshal_model,
+                              required=True,
+                              description='List of comments for post'),
     'timestamp': fields.DateTime(required=True,
                                  description='Creation timestamp'),
     'is_archived': fields.Boolean(required=True,
@@ -79,12 +79,6 @@ post_marshal_model = api.model('Post', {
     'author': fields.Nested(model=basic_user_marshal_model,
                             required=True,
                             description='Post author'),
-})
-
-post_with_comments_marshal_model = api.inherit('Post with Comments', post_marshal_model, {
-    'comments': fields.Nested(comment_marshal_model,
-                              required=True,
-                              description='List of comments for post')
 })
 
 
@@ -111,7 +105,7 @@ class PostListResource(Resource):
             filters.append(Post.category_id.in_(args['categories[]']))
 
         if args['query'] is not None:
-            filters.append(Post.content.like(args['query']))
+            filters.append(Post.content.like('%{}%'.format(args['query'])))
 
         # set with default
         limit = args['limit']
@@ -129,6 +123,7 @@ class PostListResource(Resource):
 
     @api.doc('new_post')
     @api.expect(new_post_marshal_model)
+    @api.marshal_with(post_marshal_model)
     @auth_required
     def post(self):
         data = marshal(request.get_json(), new_post_marshal_model)
@@ -155,11 +150,11 @@ class PostListResource(Resource):
         )
 
         # validate data
-        category = Category.query.get(data['category_id'])
+        category = Category.query.get(data['category']['id'])
         if category is None:
             return abort(400, 'Category does not exist')
 
-        course = Course.query.get(data['course_id'])
+        course = Course.query.get(data['course']['id'])
         if course is None:
             return abort(400, 'Course does not exist')
 
@@ -175,23 +170,7 @@ class PostListResource(Resource):
         db.session.add(post)
         db.session.commit()
 
-        return 'OK', 201
-
-
-@api.route('/<int:id>')
-@api.param('id', 'The post id')
-@api.response(404, 'Post not found')
-class PostResource(Resource):
-    @api.doc('get_post')
-    @api.marshal_with(post_with_comments_marshal_model)
-    @auth_required
-    def get(self, id):
-        post = Post.query.filter_by(id=id).first()
-
-        if post is not None:
-            return post
-
-        abort(404, 'Post does not exist')
+        return post, 201
 
 
 @api.route('/<int:id>/comments/')
@@ -199,8 +178,11 @@ class PostResource(Resource):
 class CommentListResource(Resource):
     @api.doc('new_comment')
     @api.expect(new_comment_marshal_model)
+    @api.marshal_with(post_marshal_model)
     @auth_required
     def post(self, id):
+        post = Post.query.get(id)
+
         data = marshal(request.get_json(), new_comment_marshal_model)
         content = data['content']
 
@@ -223,19 +205,20 @@ class CommentListResource(Resource):
         )
 
         comment = Comment(content=content,
-                          post_id=id,
+                          post=post,
                           author=current_user())
 
         db.session.add(comment)
         db.session.commit()
 
-        return 'OK', 201
+        return post, 201
 
 
 @api.route('/<int:id>/cheers/')
 @api.param('id', 'The post id')
 class CheerListResource(Resource):
     @api.doc('new_cheer')
+    @api.marshal_with(post_marshal_model)
     @auth_required
     def post(self, id):
         post = Post.query.get(id)
@@ -246,4 +229,4 @@ class CheerListResource(Resource):
 
         db.session.commit()
 
-        return 'OK', 201
+        return post, 201

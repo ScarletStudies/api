@@ -5,14 +5,23 @@ from ssapi.apis.course import course_marshal_model
 
 
 @pytest.fixture
-def testdata(app):
+def testdata_courses(app):
     with app.app_context():
+        courses = []
         for n in range(0, 100):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
                             subject='subject%d' % n, course_number='cn%d' % n)
+            courses.append(course)
             db.session.add(course)
 
         db.session.commit()
+
+        courses_json = marshal(courses, course_marshal_model)
+
+        # courses are sorted by name by default
+        courses_json = sorted(courses_json, key=lambda d: d['name'])
+
+        return courses_json
 
 
 @pytest.mark.parametrize(
@@ -24,12 +33,13 @@ def testdata(app):
         (100,)
     )
 )
-@pytest.mark.usefixtures('testdata')
-def test_get_all_courses_with_limit(app, client, test_user, limit):
-    with app.app_context():
-        courses = Course.query.limit(limit).all()
-        courses_json = marshal(courses, course_marshal_model)
+def test_get_all_courses_with_limit(app, client, test_user, limit, testdata_courses):
+    courses_json = testdata_courses
 
+    # limit courses
+    courses_json = courses_json[:limit]
+
+    # hit the api
     rv = client.get('/courses/?limit=%s' % limit,
                     headers=test_user.auth_headers)
 
@@ -37,22 +47,20 @@ def test_get_all_courses_with_limit(app, client, test_user, limit):
 
     json_data = rv.get_json()
 
-    assert json_data is not None
-
-    assert len(courses_json) == len(json_data)
-
-    for course in courses_json:
-        assert course in json_data
+    assert all(a == b for a, b in zip(courses_json, json_data))
 
 
-@pytest.mark.usefixtures('testdata')
-def test_get_all_courses_by_search(app, client, test_user):
-    query = 'name0'
-
-    with app.app_context():
-        courses = Course.query.filter(Course.name.like(query)).all()
-        courses_json = marshal(courses, course_marshal_model)
-
+@pytest.mark.parametrize(
+    ('query', 'names',),
+    (
+        ('name0', ('name0',),),
+        ('name99', ('name99',),),
+        ('name1', ('name1', 'name10', 'name11', 'name12', 'name13', 'name14',
+                   'name15', 'name16', 'name17', 'name18',),),
+    )
+)
+def test_get_all_courses_by_search(app, client, test_user, testdata_courses, names, query):
+    # hit the api
     rv = client.get('/courses/?query=%s' % query,
                     headers=test_user.auth_headers)
 
@@ -60,33 +68,8 @@ def test_get_all_courses_by_search(app, client, test_user):
 
     json_data = rv.get_json()
 
-    assert json_data is not None
+    # reduce to names only
+    json_data = [c['name'] for c in json_data]
 
-    assert len(courses_json) == len(json_data)
-
-    for course in courses_json:
-        assert course in json_data
-
-
-@pytest.mark.usefixtures('testdata')
-def test_get_one_course(app, client, test_user):
-    with app.app_context():
-        course = Course.query.first()
-        course_json = marshal(course, course_marshal_model)
-
-    rv = client.get('/courses/%d' % course.id,
-                    headers=test_user.auth_headers)
-
-    assert rv.status_code == 200
-
-    json_data = rv.get_json()
-
-    assert json_data == course_json
-
-
-@pytest.mark.usefixtures('testdata')
-def test_get_one_course_error(app, client, test_user):
-    rv = client.get('/courses/-1',
-                    headers=test_user.auth_headers)
-
-    assert rv.status_code == 404
+    # confirm same data and order
+    assert all(a == b for a, b in zip(names, json_data))

@@ -1,24 +1,37 @@
 import pytest
 from flask_restplus import marshal
 from random import choice
-from sqlalchemy import desc
 from ssapi.db import db, Semester
 from ssapi.apis.semester import semester_marshal_model
 
 
 @pytest.fixture
-def testdata(app):
+def testdata_semesters(app):
     with app.app_context():
-        for n in range(0, 10):
+        semesters = []
+
+        for n in range(0, 100):
             semester = Semester(year=2010 + n,
                                 season=choice(('fall', 'summer', 'spring', 'winter')))
+            semesters.append(semester)
             db.session.add(semester)
 
         db.session.commit()
 
+        semesters_json = marshal(semesters, semester_marshal_model)
 
-@pytest.mark.usefixtures('testdata')
-def test_get_all_semesters(app, client, test_user):
+        # semesters are sorted by id desc
+        semesters_json = sorted(
+            semesters_json, key=lambda d: int(d['id']), reverse=True
+        )
+
+        return semesters_json
+
+
+def test_get_all_semesters(app, client, test_user, testdata_semesters):
+    semesters_json = testdata_semesters
+
+    # hit the api
     rv = client.get('/semesters/',
                     headers=test_user.auth_headers)
 
@@ -26,32 +39,5 @@ def test_get_all_semesters(app, client, test_user):
 
     json_data = rv.get_json()
 
-    assert json_data is not None
-
-    with app.app_context():
-        semesters = Semester.query.order_by(desc(Semester.id)).all()
-        semesters_json = marshal(semesters, semester_marshal_model)
-
-    assert len(semesters_json) == len(json_data)
-
-    # semesters should be returned in descending order
-    for i in range(0, len(semesters_json)):
-        assert semesters_json[i] == json_data[i]
-
-
-@pytest.mark.usefixtures('testdata')
-def test_get_current_semester(app, client, test_user):
-    rv = client.get('/semesters/current',
-                    headers=test_user.auth_headers)
-
-    assert rv.status_code == 200
-
-    json_data = rv.get_json()
-
-    assert json_data is not None
-
-    with app.app_context():
-        semesters = Semester.query.order_by(desc(Semester.year)).first()
-        semesters_json = marshal(semesters, semester_marshal_model)
-
-    assert semesters_json == json_data
+    # confirm same data and order
+    assert json_data == semesters_json

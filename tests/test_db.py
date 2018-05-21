@@ -28,15 +28,12 @@ def test_valid_user_model(app, email, password, is_verified):
         assert found.is_verified == is_verified
 
         # test courses relationship
-
         # create example courses
-        courses = [
-            Course(name='n%d' % n, offering_unit='ou%d' % n,
-                   subject='s%d' % n, course_number='cn%d' % n)
-            for n in range(0, 5)
-        ]
-
-        for course in courses:
+        courses = []
+        for n in range(5):
+            course = Course(name='n%d' % n, offering_unit='ou%d' % n,
+                            subject='s%d' % n, course_number='cn%d' % n)
+            courses.append(course)
             db.session.add(course)
 
         db.session.commit()
@@ -47,7 +44,6 @@ def test_valid_user_model(app, email, password, is_verified):
 
         db.session.commit()
 
-        assert user.courses is not None
         assert len(user.courses) == len(courses)
         for course in courses:
             assert course in user.courses

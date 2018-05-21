@@ -20,14 +20,3 @@ class SemesterListResource(Resource):
     @auth_required
     def get(self):
         return Semester.query.order_by(desc(Semester.id)).all()
-
-
-@api.route('/current')
-class PostResource(Resource):
-    @api.doc('get_current_semester')
-    @api.marshal_with(semester_marshal_model)
-    @auth_required
-    def get(self):
-        semester = Semester.query.order_by(desc(Semester.id)).first()
-
-        return semester

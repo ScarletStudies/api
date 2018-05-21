@@ -1,6 +1,6 @@
-from flask import abort
 from flask_praetorian import auth_required
 from flask_restplus import Namespace, Resource, fields, reqparse
+from sqlalchemy import asc
 from ssapi.db import Course
 
 api = Namespace('courses', description='Course related operations')
@@ -37,26 +37,13 @@ class CourseListResource(Resource):
         args = parser.parse_args()
         filters = []
 
+        # courses are sorted by name by default
+        order_by = asc(Course.name)
+
         if args['query'] is not None:
             filters.append(Course.name.like('%{}%'.format(args['query'])))
 
         # set with default
         limit = args['limit']
 
-        return Course.query.filter(*filters).limit(limit).all()
-
-
-@api.route('/<int:id>')
-@api.param('id', 'The course id')
-@api.response(404, 'Course not found')
-class CourseResource(Resource):
-    @api.doc('get_course')
-    @api.marshal_with(course_marshal_model)
-    @auth_required
-    def get(self, id):
-        course = Course.query.filter_by(id=id).first()
-
-        if course is not None:
-            return course
-
-        abort(404, "Course {} doesn't exist".format(id))
+        return Course.query.filter(*filters).order_by(order_by).limit(limit).all()

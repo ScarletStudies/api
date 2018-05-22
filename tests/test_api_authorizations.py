@@ -16,6 +16,9 @@ import pytest
         ('/users/courses/1', 401, 'delete'),
         # returns invalid user @ 400, not unauthorized
         ('/users/login', 400, 'post'),
+        ('/users/register', 400, 'post'),
+        ('/users/register/verify', 400, 'post'),
+        ('/users/register/resend', 400, 'post'),
     )
 )
 def test_endpoint_authorization(app, client, url, status_code, method):

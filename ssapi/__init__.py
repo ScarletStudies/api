@@ -13,14 +13,16 @@ def create_app(test_config=None):
         os.path.join(app.instance_path, 'app.sqlite'),
         ERROR_404_HELP=False,
         JWT_ACCESS_LIFESPAN={'hours': 24},
-        JWT_REFRESH_LIFESPAN={'days': 30}
+        JWT_REFRESH_LIFESPAN={'days': 30},
+        FROM_EMAIL_ADDRESS='noreply@scarletstudies.org',
+        SENDGRID_API_KEY=''
     )
 
-    print('database located at', os.path.join(app.instance_path, 'app.sqlite'))
+    # print('database located at', os.path.join(app.instance_path, 'app.sqlite'))
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
+        app.config.from_envvar('SSAPI_SETTINGS', silent=True)
     else:
         # load the test config is passed in
         app.config.from_mapping(test_config)
@@ -42,6 +44,9 @@ def create_app(test_config=None):
 
     from .praetorian import init_app as praetorian_init_app
     praetorian_init_app(app)
+
+    from .tasks import init_app as tasks_init_app
+    tasks_init_app(app)
 
     # app scripts
     from .cli import init_app as cli_init_app

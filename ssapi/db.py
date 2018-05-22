@@ -66,7 +66,7 @@ class User(db.Model):
         return self.id
 
     def is_valid(self):
-        return True
+        return self.is_verified
 
 
 class Course(db.Model):

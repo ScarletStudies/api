@@ -69,7 +69,8 @@ def seed_test_data():
 
     users = [
         User(email='test@example.com',
-             password=guard.encrypt_password('password123')),
+             password=guard.encrypt_password('password123'),
+             is_verified=True),
     ]
 
     categories = [

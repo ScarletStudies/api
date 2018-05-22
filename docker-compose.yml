@@ -1,8 +1,20 @@
 version: '3'
 services:
   web:
+    environment:
+      - SSAPI_SETTINGS=/app/.docker.env
     build: .
     volumes:
       - ./database:/app/instance
     ports:
      - "5000:80"
+  worker:
+    environment:
+      - SSAPI_SETTINGS=/app/.docker.env
+    build: .
+    volumes:
+      - ./database:/app/instance
+    command: flask rq worker
+  redis:
+    image: redis:alpine
+    

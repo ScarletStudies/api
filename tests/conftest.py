@@ -1,6 +1,6 @@
 import os
-import tempfile
 import pytest
+import tempfile
 from functools import namedtuple
 from ssapi import create_app
 from ssapi.db import db, User
@@ -13,7 +13,8 @@ def app():
 
     app = create_app({
         'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///' + db_path
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///' + db_path,
+        'RQ_ASYNC': False  # run jobs synchronously
     })
 
     with app.app_context():
@@ -46,7 +47,8 @@ def test_user(app):
         password = 'password123'
 
         user = User(email=email,
-                    password=guard.encrypt_password('password123'))
+                    password=guard.encrypt_password('password123'),
+                    is_verified=True)
 
         db.session.add(user)
         db.session.commit()

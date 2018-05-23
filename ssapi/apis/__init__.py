@@ -1,5 +1,4 @@
-from flask import jsonify
-from flask_praetorian.exceptions import MissingTokenHeader
+from flask_praetorian.exceptions import PraetorianError
 from flask_restplus import Api
 
 from .course import api as ns1
@@ -36,7 +35,4 @@ api.add_namespace(ns6)
 def init_app(app):
     api.init_app(app)
 
-    @api.errorhandler(MissingTokenHeader)
-    @app.errorhandler(MissingTokenHeader)
-    def handle_authorization_error(e):
-        return jsonify({'message': 'Unauthorized'}), 401
+    PraetorianError.register_error_handler_with_flask_restplus(api)

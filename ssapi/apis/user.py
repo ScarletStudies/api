@@ -26,6 +26,12 @@ verify_user_marshal_model = api.model('Verify User', {
                          default=''),
 })
 
+refresh_user_marshal_model = api.model('Refresh User', {
+    'jwt': fields.String(required=True,
+                         description='The old jwt to refresh',
+                         default=''),
+})
+
 user_marshal_model = api.model('User with Auth Token', {
     'email': fields.String(required=True,
                            description='The user email',
@@ -64,6 +70,26 @@ class UserLoginResource(Resource):
         return {
             'jwt': guard.encode_jwt_token(user),
             'email': user.email
+        }
+
+
+@api.route('/refresh')
+class UserRefreshResource(Resource):
+    @api.doc('refresh_jwt')
+    @api.response(200, 'Success', refresh_user_marshal_model)
+    def get(self):
+        """
+        Refreshes an existing JWT by creating a new one that is a copy of
+        the old except that it has a refrehsed access expiration.
+
+        copied from
+        https://github.com/dusktreader/flask-praetorian/blob/master/example/refresh.py
+        """
+        old_token = guard.read_token_from_header()
+        new_token = guard.refresh_jwt_token(old_token)
+
+        return {
+            'jwt': new_token
         }
 
 

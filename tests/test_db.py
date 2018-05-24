@@ -264,7 +264,6 @@ def test_valid_post_model(app):
 
         assert post.comments is not None
         assert len(post.comments) == len(comments)
-        assert post.comments_count == len(comments)
 
         for comment in comments:
             assert comment in post.comments
@@ -283,7 +282,6 @@ def test_valid_post_model(app):
 
         assert post.cheers is not None
         assert len(post.cheers) == len(users)
-        assert post.cheers_count == len(users)
 
         for cheer in users:
             assert cheer in post.cheers

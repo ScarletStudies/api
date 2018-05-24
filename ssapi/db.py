@@ -118,14 +118,6 @@ class Post(db.Model):
     comments = db.relationship('Comment')
     cheers = db.relationship('User', secondary=userpostcheers)
 
-    @property
-    def comments_count(self):
-        return Comment.query.filter_by(post_id=self.id).count()
-
-    @property
-    def cheers_count(self):
-        return len(self.cheers)
-
 
 class Comment(db.Model):
     id = db.Column(db.Integer, primary_key=True)

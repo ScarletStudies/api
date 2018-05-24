@@ -79,6 +79,47 @@ def test_get_all_posts(app, client, test_user, testdata_posts):
     assert posts_json == json_data
 
 
+def test_get_all_posts_sorted_by_time(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
+
+    # hit the api
+    rv = client.get('/posts/?sort=time',
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the posts
+    json_data = rv.get_json()
+
+    # sorts posts by time by default
+    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
+
+    assert json_data == posts_json
+
+
+def test_get_all_posts_sorted_by_latest_activity(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
+
+    # hit the api
+    rv = client.get('/posts/?sort=activity',
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the posts
+    json_data = rv.get_json()
+
+    # sorts posts by latest activity
+    def sort_key(p):
+        if len(p['comments']):
+            return max(c['timestamp'] for c in p['comments'])
+        return p['timestamp']
+
+    posts_json = sorted(posts_json, key=sort_key, reverse=True)
+
+    assert json_data == posts_json
+
+
 def test_get_all_posts_for_course(app, client, test_user, testdata_posts):
     posts_json = testdata_posts[0]
     target_course = testdata_posts[1][0]

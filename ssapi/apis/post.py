@@ -2,7 +2,7 @@ import bleach
 from flask import abort, request
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from ssapi.db import db, Post, Course, Category, Semester, Comment
 
@@ -39,10 +39,10 @@ get_posts_parser.add_argument('offset',
                               location='args',
                               help='Starting offset of returned results')
 get_posts_parser.add_argument('sort',
-                              choices=('time',),
+                              choices=('time', 'activity'),
                               default='time',
                               location='args',
-                              help='Sort by time (desc)')
+                              help='Sort by time or latest activity')
 
 new_post_marshal_model = api.model('New Post Model', {
     'title': fields.String(required=True, description='Post title'),
@@ -111,15 +111,30 @@ class PostListResource(Resource):
         limit = args['limit']
         offset = args['offset']
 
-        if args['sort'] == 'time':
-            order_by = desc(Post.timestamp)
+        if args['sort'] == 'activity':
+            """
+            select * from post
+            left join comment on comment.post_id == post.id
+            group by post.id
+            order by max(post.timestamp, comment.timestamp) desc;
 
+            if there has been comment activity, rank higher
+            """
+            return Post.query \
+                .outerjoin(Comment) \
+                .order_by(desc(Comment.timestamp), desc(Post.timestamp)) \
+                .filter(*filters) \
+                .limit(limit) \
+                .offset(offset) \
+                .all()
+
+        # default sort by time
         return Post.query \
-                   .filter(*filters) \
-                   .order_by(order_by) \
-                   .limit(limit) \
-                   .offset(offset) \
-                   .all()
+            .filter(*filters) \
+            .order_by(desc(Post.timestamp)) \
+            .limit(limit) \
+            .offset(offset) \
+            .all()
 
     @api.doc('new_post')
     @api.expect(new_post_marshal_model)

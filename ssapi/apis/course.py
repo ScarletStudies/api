@@ -1,7 +1,9 @@
+import re
 from flask_praetorian import auth_required
 from flask_restplus import Namespace, Resource, fields, reqparse
 from sqlalchemy import asc
 from ssapi.db import Course
+
 
 api = Namespace('courses', description='Course related operations')
 
@@ -41,7 +43,16 @@ class CourseListResource(Resource):
         order_by = asc(Course.name)
 
         if args['query'] is not None:
-            filters.append(Course.name.like('%{}%'.format(args['query'])))
+            result = re.match(r'(\d{1,2}):(\d{1,3}):(\d{1,3})', args['query'])
+
+            if result:
+                offering_unit, subject, course_number = result.group(1, 2, 3)
+
+                filters.append(Course.course_number.like(course_number))
+                filters.append(Course.offering_unit.like(offering_unit))
+                filters.append(Course.subject.like(subject))
+            else:
+                filters.append(Course.name.like('%{}%'.format(args['query'])))
 
         # set with default
         limit = args['limit']

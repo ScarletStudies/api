@@ -48,11 +48,10 @@ def downgrade():
 
             for course in courses:
                 op.execute(
-                    courses_table.update()
-                    .where(
-                        courses_table.name == op.inline_literal(course['name'])
-                        and courses_table.offering_unit == op.inline_literal(course['offering_unit'])
-                        and courses_table.subject == op.inline_literal(course['subject'])
-                        and courses_table.course_number == op.inline_literal(course['course_number'])
-                    )
+                    courses_table
+                    .delete()
+                    .where(courses_table.columns.name == op.inline_literal(course['name']))
+                    .where(courses_table.columns.offering_unit == op.inline_literal(course['offering_unit']))
+                    .where(courses_table.columns.subject == op.inline_literal(course['subject']))
+                    .where(courses_table.columns.course_number == op.inline_literal(course['course_number']))
                 )

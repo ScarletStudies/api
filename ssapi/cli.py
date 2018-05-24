@@ -4,6 +4,26 @@ from flask.cli import with_appcontext
 
 def init_app(app):
     app.cli.add_command(seed_test_data)
+    app.cli.add_command(seed_test_user)
+
+
+@click.command()
+@with_appcontext
+def seed_test_user():
+    """
+    seed test user for casual interaction
+    """
+    from .db import db, User
+    from .praetorian import guard
+
+    user = User(email='tristan.kernan@rutgers.edu',
+                password=guard.encrypt_password('stringstring'),
+                is_verified=True)
+
+    db.session.add(user)
+    db.session.commit()
+
+    print('Added test user {}'.format(user.email))
 
 
 @click.command()
@@ -117,3 +137,6 @@ def seed_test_data():
         db.session.add(data)
 
     db.session.commit()
+
+    print('Seeded database with {} items'
+          .format(len(courses) + len(users) + len(categories) + len(semesters) + len(posts) + len(comments)))

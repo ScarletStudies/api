@@ -1,5 +1,5 @@
 from freezegun import freeze_time
-from datetime import date
+from datetime import date, timedelta
 
 
 def test_login(app, client, test_user):
@@ -24,9 +24,10 @@ def test_login(app, client, test_user):
 
 def test_refresh(app, client, test_user):
     today = date.today()
+    future = today + timedelta(days=5)
 
     # move five days into the future in order to avoid EarlyRefresh error
-    with freeze_time('{}-{}-{}'.format(today.year, today.month, today.day + 5)):
+    with freeze_time(future):
         # hit the api
         rv = client.get('/users/refresh',
                         headers=test_user.auth_headers)

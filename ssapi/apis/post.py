@@ -254,4 +254,4 @@ class PostResource(Resource):
     @api.marshal_with(post_marshal_model)
     @auth_required
     def get(self, id):
-        return Post.query.get(id)
+        return Post.query.get_or_404(id)

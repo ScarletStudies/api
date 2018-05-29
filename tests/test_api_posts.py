@@ -340,3 +340,13 @@ def test_get_one_post(app, client, test_user, testdata_posts):
     json_data = rv.get_json()
 
     assert json_data == target_post
+
+
+def test_fail_get_one_post(app, client, test_user, testdata_posts):
+    unavailable_id = 1000000
+
+    # hit the api
+    rv = client.get('/posts/{}'.format(unavailable_id),
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 404

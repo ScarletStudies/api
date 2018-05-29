@@ -8,6 +8,7 @@ import pytest
         ('/categories/', 401, 'get'),
         ('/posts/', 401, 'get'),
         ('/posts/', 401, 'post'),
+        ('/posts/1', 401, 'get'),
         ('/posts/1/cheers/', 401, 'post'),
         ('/posts/1/comments/', 401, 'post'),
         ('/semesters/', 401, 'get'),

@@ -2,7 +2,7 @@ import bleach
 from flask import abort, request
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
-from sqlalchemy import desc, func
+from sqlalchemy import desc
 
 from ssapi.db import db, Post, Course, Category, Semester, Comment
 
@@ -245,3 +245,13 @@ class CheerListResource(Resource):
         db.session.commit()
 
         return post, 201
+
+
+@api.route('/<int:id>')
+@api.param('id', 'The post id')
+class PostResource(Resource):
+    @api.doc('get_one_post')
+    @api.marshal_with(post_marshal_model)
+    @auth_required
+    def get(self, id):
+        return Post.query.get(id)

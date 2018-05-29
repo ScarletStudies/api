@@ -325,3 +325,18 @@ def test_add_cheer(app, client, test_user, testdata_posts):
     }
 
     assert all(json_data[k] == v for k, v in expected.items())
+
+
+def test_get_one_post(app, client, test_user, testdata_posts):
+    target_post = testdata_posts[0][0]
+
+    # hit the api
+    rv = client.get('/posts/{}'.format(target_post['id']),
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the post
+    json_data = rv.get_json()
+
+    assert json_data == target_post

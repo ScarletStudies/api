@@ -1,6 +1,4 @@
-import os
 import pytest
-import tempfile
 from functools import namedtuple
 from ssapi import create_app
 from ssapi.db import db, User
@@ -9,21 +7,12 @@ from ssapi.praetorian import guard
 
 @pytest.fixture
 def app():
-    db_fd, db_path = tempfile.mkstemp()
-
-    app = create_app({
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///' + db_path,
-        'RQ_ASYNC': False  # run jobs synchronously
-    })
+    app = create_app()
 
     with app.app_context():
         db.create_all()
 
-    yield app
-
-    os.close(db_fd)
-    os.unlink(db_path)
+    return app
 
 
 @pytest.fixture

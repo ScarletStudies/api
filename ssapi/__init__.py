@@ -8,21 +8,15 @@ def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
-        SECRET_KEY='dev',
-        SQLALCHEMY_DATABASE_URI='sqlite:///' +
-        os.path.join(app.instance_path, 'app.sqlite'),
         ERROR_404_HELP=False,
         JWT_ACCESS_LIFESPAN={'hours': 24},
         JWT_REFRESH_LIFESPAN={'days': 30},
-        FROM_EMAIL_ADDRESS='noreply@scarletstudies.org',
-        SENDGRID_API_KEY=''
+        MAIL_DEFAULT_SENDER='noreply@scarletstudies.org'
     )
-
-    # print('database located at', os.path.join(app.instance_path, 'app.sqlite'))
 
     if test_config is None:
         # load the instance config, if it exists, when not testing
-        app.config.from_envvar('SSAPI_SETTINGS', silent=True)
+        app.config.from_envvar('SSAPI_SETTINGS', silent=False)
     else:
         # load the test config is passed in
         app.config.from_mapping(test_config)

@@ -1,7 +1,4 @@
-.PHONY: test coverage
-
-test:
-	pytest -s
+.PHONY: test coverage flask
 
 coverage:
 	coverage run -m pytest
@@ -9,4 +6,8 @@ coverage:
 	coverage html
 	firefox htmlcov/index.html
 
+flask:
+	SSAPI_SETTINGS="$(shell pwd)/env/$(E).env" flask $(A)
 
+test:
+	SSAPI_SETTINGS="$(shell pwd)/env/test.env" pytest -s

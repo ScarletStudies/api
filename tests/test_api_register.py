@@ -1,87 +1,77 @@
 import jwt
 import pytest
-import ssapi.tasks
 from functools import namedtuple
 from ssapi.db import db, User
 from ssapi.praetorian import guard
-from unittest.mock import MagicMock
+from ssapi.tasks import mail
 
 
-@pytest.fixture
-def email_mock(monkeypatch):
-    email_mock = MagicMock(spec_set=ssapi.tasks.sg)
-
-    # patch email sent
-    monkeypatch.setattr('ssapi.tasks.sg',
-                        email_mock)
-
-    return email_mock
-
-
-def test_register(app, client, email_mock):
+def test_register(app, client):
     # register payload
     data = {
         'email': 'example@rutgers.edu',
         'password': 'password456'
     }
 
-    # hit the api
-    rv = client.post('/users/register',
-                     json=data)
-
-    assert rv.status_code == 201
-
-    # confirm user is created in database _without_ verification flag set
+    # record outbound messages
     with app.app_context():
-        user = User.query.filter_by(email=data['email']).first()
-        assert not user.is_verified
+        with mail.record_messages() as outbox:
+            # hit the api
+            rv = client.post('/users/register',
+                             json=data)
 
-    # confirm cannot login yet
-    rv = client.post('/users/login',
-                     json=data)
+            assert rv.status_code == 201
 
-    assert rv.status_code == 400
-    assert 'verify their email address' in rv.get_json()['message']
+            # confirm user is created in database _without_ verification flag set
 
-    email_mock.client.mail.send.post.assert_called_once()
+            user = User.query.filter_by(email=data['email']).first()
+            assert not user.is_verified
 
-    email_mock.reset_mock()
+            # confirm cannot login yet
+            rv = client.post('/users/login',
+                             json=data)
 
-    # resend verification email
-    rv = client.post('/users/register/resend',
-                     json=data)
+            assert rv.status_code == 400
+            assert 'verify their email address' in rv.get_json()['message']
 
-    assert rv.status_code == 200
+            assert len(outbox) == 1
 
-    email_mock.client.mail.send.post.assert_called_once()
+            # resend verification email
+            rv = client.post('/users/register/resend',
+                             json=data)
+
+            assert rv.status_code == 200
+
+            assert len(outbox) == 2
 
 
-def test_register_existing_user(app, client, test_user, email_mock):
+def test_register_existing_user(app, client, test_user):
     # register payload
     data = {
         'email': test_user.email,
         'password': 'password456'  # note: different password
     }
 
-    # hit the api
-    rv = client.post('/users/register',
-                     json=data)
+    with app.app_context():
+        with mail.record_messages() as outbox:
+            # hit the api
+            rv = client.post('/users/register',
+                             json=data)
 
-    assert rv.status_code == 400
-    assert 'already exists' in rv.get_json()['message']
+            assert rv.status_code == 400
+            assert 'already exists' in rv.get_json()['message']
 
-    # resend verification email
-    rv = client.post('/users/register/resend',
-                     json=data)
+            # resend verification email
+            rv = client.post('/users/register/resend',
+                             json=data)
 
-    assert rv.status_code == 400
+            assert rv.status_code == 400
 
-    assert 'already verified' in rv.get_json()['message']
+            assert 'already verified' in rv.get_json()['message']
 
-    email_mock.client.mail.send.post.assert_not_called()
+            assert len(outbox) == 0
 
 
-@pytest.mark.usefixtures('email_mock')
 def test_register_non_rutgers_user(app, client):
     # register payload
     data = {
@@ -107,7 +97,6 @@ def test_register_non_rutgers_user(app, client):
         ('tttttttttttttttttttttttttttttttt+', False),
     )
 )
-@pytest.mark.usefixtures('email_mock')
 def test_register_user_with_bad_password(app, client, password, is_valid):
     # register payload
     data = {

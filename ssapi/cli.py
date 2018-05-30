@@ -91,6 +91,9 @@ def seed_test_data():
         User(email='test@example.com',
              password=guard.encrypt_password('password123'),
              is_verified=True),
+        User(email='passwordchange@fakerutgers.edu',
+             password=guard.encrypt_password('strongstrong'),
+             is_verified=True)
     ]
 
     categories = [

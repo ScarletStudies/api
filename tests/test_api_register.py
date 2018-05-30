@@ -1,15 +1,13 @@
-import jwt
 import pytest
-from functools import namedtuple
-from ssapi.db import db, User
-from ssapi.praetorian import guard
+import re
+from ssapi.db import User
 from ssapi.tasks import mail
 
 
 def test_register(app, client):
     # register payload
     data = {
-        'email': 'example@rutgers.edu',
+        'email': 'example@fakerutgers.edu',
         'password': 'password456'
     }
 
@@ -43,6 +41,35 @@ def test_register(app, client):
             assert rv.status_code == 200
 
             assert len(outbox) == 2
+
+            # grab the verification code from the email and verify
+            result = re.search(
+                r'https:\/\/www\.scarletstudies\.org\/user\/verify\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
+                outbox[-1].body
+            )
+
+            assert result
+
+            code = result.group(1)
+
+            jwt_data = {
+                'jwt': code
+            }
+
+            # hit the api
+            rv = client.post('/users/register/verify',
+                             json=jwt_data)
+
+            assert rv.status_code == 200
+
+            # should return jwt
+            assert rv.get_json()['jwt'] is not None
+
+            # should be able to log in now
+            rv = client.post('/users/login',
+                             json=data)
+
+            assert rv.status_code == 200
 
 
 def test_register_existing_user(app, client, test_user):
@@ -113,61 +140,3 @@ def test_register_user_with_bad_password(app, client, password, is_valid):
     else:
         assert rv.status_code == 400
         assert 'Invalid password' in rv.get_json()['message']
-
-
-@pytest.fixture
-def test_unregistered_user(app):
-    TestUser = namedtuple(
-        'TestUser', ['email', 'password', 'id', 'auth_headers', 'register_jwt']
-    )
-
-    with app.app_context():
-        email = 'test2@unittest.com'
-        password = 'password123'
-
-        user = User(email=email,
-                    password=guard.encrypt_password('password123'),
-                    is_verified=True)
-
-        db.session.add(user)
-        db.session.commit()
-
-        headers = {'Authorization': 'Bearer %s' % guard.encode_jwt_token(user)}
-
-        register_jwt = jwt.encode(
-            {'user_id': user.id},
-            app.config['SECRET_KEY'],
-            algorithm='HS256'
-        ).decode('utf-8')
-
-    return TestUser(email=email,
-                    password=password,
-                    id=user.id,
-                    auth_headers=headers,
-                    register_jwt=register_jwt)
-
-
-def test_verify_user(app, client, test_unregistered_user):
-    data = {
-        'jwt': test_unregistered_user.register_jwt
-    }
-
-    # hit the api
-    rv = client.post('/users/register/verify',
-                     json=data)
-
-    assert rv.status_code == 200
-
-    # should return jwt
-    assert rv.get_json()['jwt'] is not None
-
-    # should be able to log in now
-    data = {
-        'email': test_unregistered_user.email,
-        'password': test_unregistered_user.password
-    }
-
-    rv = client.post('/users/login',
-                     json=data)
-
-    assert rv.status_code == 200

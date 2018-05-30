@@ -6,7 +6,7 @@ from flask_praetorian.exceptions import AuthenticationError, MissingUserError
 from flask_restplus import Namespace, Resource, fields, marshal
 from ssapi.db import db, Course, User
 from ssapi.praetorian import guard
-from ssapi.tasks import verification_email
+from ssapi.tasks import verification_email, forgot_password_email
 
 from .course import course_marshal_model
 
@@ -127,6 +127,27 @@ class UserChangePasswordResource(Resource):
 
         # commit database
         db.session.commit()
+
+        return 'OK', 200
+
+
+@api.route('/password/forgot')
+class UserForgotPasswordResource(Resource):
+    @api.doc('forgot_password')
+    @api.expect(basic_user_marshal_model)
+    @api.response(200, 'Success')
+    def post(self):
+        data = marshal(request.get_json(), basic_user_marshal_model)
+        email = data['email']
+
+        # look up user
+        user = User.query.filter_by(email=email).one_or_none()
+
+        if user is None:
+            return abort(400, 'Account for email {} does not exist'.format(email))
+
+        # queue email
+        forgot_password_email.queue(email)
 
         return 'OK', 200
 

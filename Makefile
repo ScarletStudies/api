@@ -10,4 +10,4 @@ flask:
 	SSAPI_SETTINGS="$(shell pwd)/env/$(E).env" flask $(A)
 
 test:
-	SSAPI_SETTINGS="$(shell pwd)/env/test.env" pytest -s
+	SSAPI_SETTINGS="$(shell pwd)/env/test.env" pytest -s $(F)

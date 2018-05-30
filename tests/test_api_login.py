@@ -1,5 +1,8 @@
+import re
 from freezegun import freeze_time
 from datetime import date, timedelta
+
+from ssapi.tasks import mail
 
 
 def test_login(app, client, test_user):
@@ -69,3 +72,37 @@ def test_change_password(app, client, test_user):
     # confirm login succeeded for correct user
     assert test_user.email == json_data['email']
     assert 'jwt' in json_data
+
+
+def test_forgot_password(app, client, test_user):
+    with app.app_context():
+        with mail.record_messages() as outbox:
+            data = {
+                'email': test_user.email
+            }
+
+            # hit the api
+            rv = client.post('/users/password/forgot',
+                             json=data)
+
+            assert rv.status_code == 200
+
+            assert len(outbox) == 1
+
+            # grab the jwt from the email
+            result = re.search(
+                r'https:\/\/www\.scarletstudies\.org\/user\/forgot\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
+                outbox[-1].body
+            )
+
+            assert result
+
+            token = result.group(1)
+
+            headers = {'Authorization': 'Bearer %s' % token}
+
+            # should be able to access protected endpoints now
+            rv = client.get('/users/courses/',
+                            headers=headers)
+
+            assert rv.status_code == 200

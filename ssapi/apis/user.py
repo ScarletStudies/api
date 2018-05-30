@@ -50,6 +50,15 @@ login_or_register_marshal_model = api.model('Login or Register', {
                               default='')
 })
 
+change_password_marshal_model = api.model('Change Password', {
+    'old': fields.String(required=True,
+                         description='The old password',
+                         default=''),
+    'new': fields.String(required=True,
+                         description='The new password',
+                         default='')
+})
+
 
 @api.route('/login')
 class UserLoginResource(Resource):
@@ -91,6 +100,35 @@ class UserRefreshResource(Resource):
         return {
             'jwt': new_token
         }
+
+
+@api.route('/password/change')
+class UserChangePasswordResource(Resource):
+    @api.doc('change_password')
+    @api.expect(change_password_marshal_model)
+    @api.response(200, 'Success')
+    @auth_required
+    def post(self):
+        data = marshal(request.get_json(), change_password_marshal_model)
+        old = data['old']
+        new = data['new']
+
+        # check old password
+        current = current_user()
+        user = guard.authenticate(current.email, old)
+
+        # check for valid new password
+        if len(new) not in range(10, 33):
+            return abort(400,
+                         'Invalid password. Must be between 10 and 32 characters (inclusive)')
+
+        # change user password
+        user.password = guard.encrypt_password(new)
+
+        # commit database
+        db.session.commit()
+
+        return 'OK', 200
 
 
 @api.route('/register')

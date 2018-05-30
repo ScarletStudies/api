@@ -12,6 +12,7 @@ import pytest
         ('/posts/1/cheers/', 401, 'post'),
         ('/posts/1/comments/', 401, 'post'),
         ('/semesters/', 401, 'get'),
+        ('/users/password/change', 401, 'post'),
         ('/users/courses/', 401, 'get'),
         ('/users/courses/1', 401, 'post'),
         ('/users/courses/1', 401, 'delete'),

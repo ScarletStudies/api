@@ -44,7 +44,7 @@ def test_register(app, client):
 
             # grab the verification code from the email and verify
             result = re.search(
-                r'https:\/\/www\.scarletstudies\.org\/user\/verify\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
+                r'https:\/\/www\.scarletstudies\.org\/verify\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
                 outbox[-1].body
             )
 

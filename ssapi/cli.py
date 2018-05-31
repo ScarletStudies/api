@@ -1,5 +1,6 @@
 import click
 from flask.cli import with_appcontext
+from flask import current_app
 
 
 def init_app(app):
@@ -93,7 +94,13 @@ def seed_test_data():
              is_verified=True),
         User(email='passwordchange@fakerutgers.edu',
              password=guard.encrypt_password('strongstrong'),
-             is_verified=True)
+             is_verified=True),
+        User(email='deleteaccount@fakerutgers.edu',
+             password=guard.encrypt_password('strongbad42'),
+             is_verified=True),
+        User(email=current_app.config['DELETED_ACCOUNT_EMAIL'],
+             password='42',
+             is_verified=False)
     ]
 
     categories = [

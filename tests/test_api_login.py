@@ -91,7 +91,7 @@ def test_forgot_password(app, client, test_user):
 
             # grab the jwt from the email
             result = re.search(
-                r'https:\/\/www\.scarletstudies\.org\/user\/forgot\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
+                r'https:\/\/www\.scarletstudies\.org\/forgot\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
                 outbox[-1].body
             )
 
@@ -106,11 +106,11 @@ def test_forgot_password(app, client, test_user):
 
             # hit magic login api
             rv = client.post('/users/login/magic',
-                            json=data)
+                             json=data)
 
             assert rv.status_code == 200
 
-            json_data  = rv.get_json()
+            json_data = rv.get_json()
 
             assert 'jwt' in json_data
             assert test_user.email == json_data['email']

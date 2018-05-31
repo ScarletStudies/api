@@ -6,7 +6,7 @@ from flask_praetorian.exceptions import AuthenticationError, MissingUserError
 from flask_restplus import Namespace, Resource, fields, marshal
 from ssapi.db import db, Course, User
 from ssapi.praetorian import guard
-from ssapi.tasks import verification_email, forgot_password_email
+from ssapi.tasks import verification_email, forgot_password_email, user_deletion
 
 from .course import course_marshal_model
 
@@ -57,6 +57,15 @@ change_password_marshal_model = api.model('Change Password', {
     'new': fields.String(required=True,
                          description='The new password',
                          default='')
+})
+
+delete_account_marshal_model = api.model('Delete Account', {
+    'password': fields.String(required=True,
+                              description='The account password',
+                              default=''),
+    'remove_content': fields.Boolean(required=True,
+                                     description='Whether or not to delete all user content',
+                                     default=False)
 })
 
 
@@ -272,6 +281,26 @@ class UserVerifyResource(Resource):
             'jwt': guard.encode_jwt_token(user),
             'email': user.email
         }
+
+
+@api.route('/remove')
+class UserDeleteAccountResource(Resource):
+    @api.doc('delete_account')
+    @api.expect(delete_account_marshal_model)
+    @api.response(200, 'Success')
+    @auth_required
+    def post(self):
+        data = marshal(request.get_json(), delete_account_marshal_model)
+        password = data['password']
+        remove_content = data['remove_content']
+
+        # check old password
+        current = current_user()
+        user = guard.authenticate(current.email, password)
+
+        user_deletion.queue(user.email, remove_content)
+
+        return 'OK', 200
 
 
 @api.route('/courses/')

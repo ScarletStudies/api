@@ -152,6 +152,39 @@ class UserForgotPasswordResource(Resource):
         return 'OK', 200
 
 
+@api.route('/login/magic')
+class UserMagicLoginResource(Resource):
+    @api.doc('magic_login')
+    @api.expect(verify_user_marshal_model)
+    @api.response(200, 'Success', user_marshal_model)
+    def post(self):
+        """
+        like verify, but does not verify the user
+        """
+        data = marshal(request.get_json(), verify_user_marshal_model)
+        encoded = data['jwt']
+
+        try:
+            decoded = jwt.decode(
+                encoded, current_app.config['SECRET_KEY'], algorithm='HS256'
+            )
+        except DecodeError:
+            return abort(400, 'Invalid magic login token')
+
+        user = User.query.get(decoded['user_id'])
+
+        if user is None:
+            return abort(400, 'User does not exist')
+
+        if not user.is_verified:
+            return abort(400, 'User must verify their email address')
+
+        return {
+            'jwt': guard.encode_jwt_token(user),
+            'email': user.email
+        }
+
+
 @api.route('/register')
 class UserRegisterResource(Resource):
     @api.doc('register_user')

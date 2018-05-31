@@ -99,10 +99,18 @@ def test_forgot_password(app, client, test_user):
 
             token = result.group(1)
 
-            headers = {'Authorization': 'Bearer %s' % token}
+            # token is used as "magic" login
+            data = {
+                'jwt': token
+            }
 
-            # should be able to access protected endpoints now
-            rv = client.get('/users/courses/',
-                            headers=headers)
+            # hit magic login api
+            rv = client.post('/users/login/magic',
+                            json=data)
 
             assert rv.status_code == 200
+
+            json_data  = rv.get_json()
+
+            assert 'jwt' in json_data
+            assert test_user.email == json_data['email']

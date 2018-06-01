@@ -1,4 +1,5 @@
 import click
+from datetime import date
 from flask.cli import with_appcontext
 from flask import current_app
 
@@ -118,6 +119,7 @@ def seed_test_data():
     posts = [
         Post(title='I have a title',
              content='Hello world, {}'.format(course.name),
+             due_date=date.today(),
              author=users[0],
              course=course,
              category=categories[0],

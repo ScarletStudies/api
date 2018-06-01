@@ -1,4 +1,5 @@
 import pytest
+from datetime import date
 from sqlalchemy.exc import IntegrityError
 from ssapi.db import db, User, Course, Category, Semester, Post, Comment
 
@@ -210,6 +211,7 @@ def test_valid_post_model(app):
         title = 'example title content'
         content = 'example post content'
         is_archived = False
+        due_date = date(2018, 1, 1)
 
         author = User(email='email', password='password', is_verified=True)
         course = Course(name='name', offering_unit='1',
@@ -226,8 +228,11 @@ def test_valid_post_model(app):
 
         post = Post(title=title,
                     content=content,
-                    is_archived=is_archived, author_id=author.id,
-                    semester_id=semester.id, category_id=category.id,
+                    is_archived=is_archived,
+                    due_date=due_date,
+                    author_id=author.id,
+                    semester_id=semester.id,
+                    category_id=category.id,
                     course_id=course.id)
 
         db.session.add(post)
@@ -241,14 +246,12 @@ def test_valid_post_model(app):
         assert found.content == content
         assert found.timestamp is not None
         assert found.is_archived == is_archived
+        assert found.due_date == due_date
 
         # test relationships
         assert found.author.email == author.email
-
         assert found.course.name == course.name
-
         assert found.semester.year == semester.year
-
         assert found.category.name == category.name
 
         # test comments

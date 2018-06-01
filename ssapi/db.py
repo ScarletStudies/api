@@ -99,6 +99,7 @@ class Post(db.Model):
     timestamp = db.Column(db.DateTime, nullable=False,
                           server_default=func.now())
     is_archived = db.Column(db.Boolean, nullable=False, default=False)
+    due_date = db.Column(db.Date)
 
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     author = db.relationship('User', uselist=False)

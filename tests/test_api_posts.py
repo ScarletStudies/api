@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, date
 from flask_restplus import marshal
 from ssapi.db import db, Post, Course, Category, Semester
 
@@ -40,6 +40,7 @@ def testdata_posts(app, test_user):
             post = Post(title='title%d' % n,
                         content='content%d' % n,
                         timestamp=datetime(2018 + n, 1, 1),
+                        due_date=date(2018 + n, 2, 3),
                         author_id=test_user.id,
                         course=courses[n],
                         category=categories[n],
@@ -180,6 +181,40 @@ def test_get_all_posts_by_search(app, client, test_user, testdata_posts):
     assert posts_json == json_data
 
 
+def test_get_all_posts_within_time_period(app, client, test_user, testdata_posts):
+    posts_json = testdata_posts[0]
+
+    start_date = date(2018, 1, 1)
+    start = '2018-1-1'
+    end_date = date(2020, 1, 1)
+    end = '2020-1-1'
+
+    # hit the api
+    rv = client.get('/posts/?start_date={}&end_date={}'.format(start, end),
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the posts
+    json_data = rv.get_json()
+
+    # posts should be limited by search
+    for pj in posts_json:
+        pj['due_date'] = date(*(int(i) for i in pj['due_date'].split('-')))
+
+    # need to convert json data due dates to datetime objects now too
+    for jd in json_data:
+        jd['due_date'] = date(*(int(i) for i in jd['due_date'].split('-')))
+
+    posts_json = [p for p in posts_json if p['due_date'] <
+                  end_date and p['due_date'] >= start_date]
+
+    # sorts posts by time by default
+    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
+
+    assert posts_json == json_data
+
+
 @pytest.mark.parametrize(
     ('limit', 'offset'),
     (
@@ -218,12 +253,13 @@ def test_add_post(app, client, test_user, testdata_posts):
     data = {
         'title': 'title',
         'content': '<p>content</p>',
+        'due_date': '2015-01-01',
         'category': {
             'id': target_category['id']
         },
         'course': {
             'id': target_course['id']
-        }
+        },
     }
 
     # hit the api
@@ -239,6 +275,7 @@ def test_add_post(app, client, test_user, testdata_posts):
     expected = {
         'title': 'title',
         'content': '<p>content</p>',
+        'due_date': '2015-01-01',
         'category': target_category,
         'course': target_course,
         'comments': [],

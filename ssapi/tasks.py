@@ -24,9 +24,8 @@ def verification_email(email):
     to_email = user.email
     subject = 'Verify Your Scarlet Studies Account'
 
-    # TODO should be a better token, with timeout?
     encoded = jwt.encode(
-        {'user_id': user.id},
+        {'email': user.email},
         current_app.config['SECRET_KEY'],
         algorithm='HS256'
     ).decode('utf-8')
@@ -48,9 +47,8 @@ def forgot_password_email(email):
     to_email = user.email
     subject = 'Access Your Scarlet Studies Account'
 
-    # TODO should be a better token, with timeout?
     encoded = jwt.encode(
-        {'user_id': user.id},
+        {'email': user.email},
         current_app.config['SECRET_KEY'],
         algorithm='HS256'
     ).decode('utf-8')

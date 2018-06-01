@@ -1,8 +1,9 @@
 import bleach
+from datetime import datetime, timedelta
 from flask import abort, request
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 
 from ssapi.db import db, Post, Course, Category, Semester, Comment
 
@@ -43,10 +44,17 @@ get_posts_parser.add_argument('sort',
                               default='time',
                               location='args',
                               help='Sort by time or latest activity')
+get_posts_parser.add_argument('start_date',
+                              location='args',
+                              help='Return posts on or after given date')
+get_posts_parser.add_argument('end_date',
+                              location='args',
+                              help='Return posts before and not on given date')
 
 new_post_marshal_model = api.model('New Post Model', {
     'title': fields.String(required=True, description='Post title'),
     'content': fields.String(required=True, description='Post content'),
+    'due_date': fields.Date(required=False, description='The post due date'),
     'category': fields.Nested(category_marshal_model, description='Only checking for id'),
     'course': fields.Nested(course_marshal_model, description='Only checking for id')
 })
@@ -56,6 +64,8 @@ post_marshal_model = api.model('Post', {
                         description='The post id'),
     'title': fields.String(required=True,
                            description='The post title'),
+    'due_date': fields.Date(required=False,
+                            description='The post due date, if it makes sense'),
     'content': fields.String(required=True,
                              description='The post content'),
     'cheers': fields.Nested(model=basic_user_marshal_model,
@@ -107,6 +117,16 @@ class PostListResource(Resource):
         if args['query'] is not None:
             filters.append(Post.content.like('%{}%'.format(args['query'])))
 
+        if args['start_date'] is not None:
+            # because >= does not appear to work correctly, use > with a day before
+            start_date = datetime.strptime(args['start_date'], '%Y-%m-%d') \
+                - timedelta(days=1)
+            filters.append(Post.due_date > start_date)
+
+        if args['end_date'] is not None:
+            end_date = datetime.strptime(args['end_date'], '%Y-%m-%d')
+            filters.append(Post.due_date < end_date)
+
         # set with default
         limit = args['limit']
         offset = args['offset']
@@ -145,6 +165,7 @@ class PostListResource(Resource):
 
         title = data['title']
         content = data['content']
+        due_date = data['due_date']
 
         content = bleach.clean(
             content,
@@ -164,6 +185,9 @@ class PostListResource(Resource):
             content
         )
 
+        if due_date:
+            due_date = datetime.strptime(due_date, '%Y-%m-%d')
+
         # validate data
         category = Category.query.get(data['category']['id'])
         if category is None:
@@ -177,6 +201,7 @@ class PostListResource(Resource):
 
         post = Post(title=title,
                     content=content,
+                    due_date=due_date,
                     category=category,
                     course=course,
                     author=current_user(),

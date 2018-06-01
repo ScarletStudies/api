@@ -180,7 +180,7 @@ class UserMagicLoginResource(Resource):
         except DecodeError:
             return abort(400, 'Invalid magic login token')
 
-        user = User.query.get(decoded['user_id'])
+        user = User.query.filter_by(email=decoded['email']).one_or_none()
 
         if user is None:
             return abort(400, 'User does not exist')
@@ -269,7 +269,7 @@ class UserVerifyResource(Resource):
         except DecodeError:
             return abort(400, 'Invalid verification token')
 
-        user = User.query.get(decoded['user_id'])
+        user = User.query.filter_by(email=decoded['email']).one_or_none()
 
         if user is None:
             return abort(400, 'User does not exist')

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask import abort, request
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
-from sqlalchemy import desc, or_
+from sqlalchemy import desc
 
 from ssapi.db import db, Post, Course, Category, Semester, Comment
 
@@ -29,16 +29,11 @@ get_posts_parser.add_argument('query',
                               type=str,
                               location='args',
                               help='Search for posts containing query in content')
-get_posts_parser.add_argument('limit',
+get_posts_parser.add_argument('page',
                               type=int,
-                              default=100,
+                              default=1,
                               location='args',
-                              help='Limit number of returned results')
-get_posts_parser.add_argument('offset',
-                              type=int,
-                              default=0,
-                              location='args',
-                              help='Starting offset of returned results')
+                              help='Pagination')
 get_posts_parser.add_argument('sort',
                               choices=('time', 'activity'),
                               default='time',
@@ -91,6 +86,11 @@ post_marshal_model = api.model('Post', {
                             description='Post author'),
 })
 
+paginated_post_marshal_model = api.model('Paginated Post', {
+    'items': fields.List(fields.Nested(post_marshal_model)),
+    'total': fields.Integer()
+})
+
 
 def linkify(attrs, new=False):
     attrs[(None, 'target')] = '_blank'
@@ -102,7 +102,7 @@ def linkify(attrs, new=False):
 class PostListResource(Resource):
     @api.doc('list_posts')
     @api.expect(get_posts_parser)
-    @api.marshal_list_with(post_marshal_model)
+    @api.marshal_with(paginated_post_marshal_model)
     @auth_required
     def get(self):
         args = get_posts_parser.parse_args()
@@ -127,9 +127,8 @@ class PostListResource(Resource):
             end_date = datetime.strptime(args['end_date'], '%Y-%m-%d')
             filters.append(Post.due_date < end_date)
 
-        # set with default
-        limit = args['limit']
-        offset = args['offset']
+        # pagination
+        page = args['page']
 
         if args['sort'] == 'activity':
             """
@@ -144,17 +143,13 @@ class PostListResource(Resource):
                 .outerjoin(Comment) \
                 .order_by(desc(Comment.timestamp), desc(Post.timestamp)) \
                 .filter(*filters) \
-                .limit(limit) \
-                .offset(offset) \
-                .all()
+                .paginate(page)
 
         # default sort by time
         return Post.query \
             .filter(*filters) \
             .order_by(desc(Post.timestamp)) \
-            .limit(limit) \
-            .offset(offset) \
-            .all()
+            .paginate(page)
 
     @api.doc('new_post')
     @api.expect(new_post_marshal_model)

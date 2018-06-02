@@ -60,7 +60,7 @@ def testdata_posts(app, test_user):
 
 
 def test_get_all_posts(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
+    test_posts_json = testdata_posts[0]
 
     # hit the api
     rv = client.get('/posts/',
@@ -69,19 +69,21 @@ def test_get_all_posts(app, client, test_user, testdata_posts):
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
     # sorts posts by time by default
-    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
+    test_posts_json = sorted(
+        test_posts_json, key=lambda p: p['timestamp'], reverse=True)
 
-    # returns 100 posts max by default
-    posts_json = posts_json[:100]
+    # returns 20 posts max by default
+    test_posts_json = test_posts_json[:20]
 
-    assert posts_json == json_data
+    assert api_posts_json == test_posts_json
 
 
 def test_get_all_posts_sorted_by_time(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
+    test_posts_json = testdata_posts[0]
 
     # hit the api
     rv = client.get('/posts/?sort=time',
@@ -90,16 +92,21 @@ def test_get_all_posts_sorted_by_time(app, client, test_user, testdata_posts):
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
     # sorts posts by time by default
-    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
+    test_posts_json = sorted(
+        test_posts_json, key=lambda p: p['timestamp'], reverse=True)
 
-    assert json_data == posts_json
+    # returns 20 posts max by default
+    test_posts_json = test_posts_json[:20]
+
+    assert api_posts_json == test_posts_json
 
 
 def test_get_all_posts_sorted_by_latest_activity(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
+    test_posts_json = testdata_posts[0]
 
     # hit the api
     rv = client.get('/posts/?sort=activity',
@@ -108,7 +115,8 @@ def test_get_all_posts_sorted_by_latest_activity(app, client, test_user, testdat
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
     # sorts posts by latest activity
     def sort_key(p):
@@ -116,9 +124,12 @@ def test_get_all_posts_sorted_by_latest_activity(app, client, test_user, testdat
             return max(c['timestamp'] for c in p['comments'])
         return p['timestamp']
 
-    posts_json = sorted(posts_json, key=sort_key, reverse=True)
+    test_posts_json = sorted(test_posts_json, key=sort_key, reverse=True)
 
-    assert json_data == posts_json
+    # returns 20 posts max by default
+    test_posts_json = test_posts_json[:20]
+
+    assert api_posts_json == test_posts_json
 
 
 def test_get_all_posts_for_course(app, client, test_user, testdata_posts):
@@ -216,33 +227,37 @@ def test_get_all_posts_within_time_period(app, client, test_user, testdata_posts
 
 
 @pytest.mark.parametrize(
-    ('limit', 'offset'),
+    ('page',),
     (
-        (5, 0),
-        (10, 0),
-        (0, 0),
-        (5, 5)
+        (1,),
+        (2,),
+        (3,),
+        (4,)
     )
 )
-def test_get_all_posts_with_limit(app, client, test_user, limit, offset, testdata_posts):
-    posts_json = testdata_posts[0]
+def test_get_all_posts_with_limit(app, client, test_user, page, testdata_posts):
+    test_posts_json = testdata_posts[0]
 
     # hit the api
-    rv = client.get('/posts/?offset=%s&limit=%s' % (offset, limit),
+    rv = client.get('/posts/?page=%d' % page,
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+
+    # grab the posts and total count
+    api_posts_json, api_posts_count = api_data_json['items'], api_data_json['total']
 
     # sorts posts by time by default
-    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
+    test_posts_json = sorted(
+        test_posts_json, key=lambda p: p['timestamp'], reverse=True)
 
     # posts should be limited by limit and offset
-    posts_json = posts_json[offset:offset+limit]
+    test_posts_json = test_posts_json[page * 10: (page + 1) * 10]
 
-    assert posts_json == json_data
+    assert test_posts_json == api_posts_json
 
 
 def test_add_post(app, client, test_user, testdata_posts):

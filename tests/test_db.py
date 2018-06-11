@@ -66,8 +66,6 @@ def test_invalid_user_model(app, email, password, is_verified):
         found = User.query.filter_by(email=email).first()
         assert found is None
 
-        assert 'NOT NULL constraint failed' in str(excinfo)
-
 ################
 # Course Model
 ##############
@@ -113,8 +111,6 @@ def test_invalid_course_model(app, name, offering_unit, subject, course_number):
         found = Course.query.filter_by(name=name).first()
         assert found is None
 
-        assert 'NOT NULL constraint failed' in str(excinfo)
-
 ################
 # Category Model
 ##############
@@ -152,8 +148,6 @@ def test_invalid_category_model(app, name):
 
         found = Category.query.filter_by(name=name).first()
         assert found is None
-
-        assert 'NOT NULL constraint failed' in str(excinfo)
 
 ################
 # Semester Model
@@ -198,8 +192,6 @@ def test_invalid_semester_model(app, year, season):
         db.session.rollback()
         found = Semester.query.filter_by(year=year, season=season).first()
         assert found is None
-
-        assert 'NOT NULL constraint failed' in str(excinfo)
 
 ################
 # Post Model

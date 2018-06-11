@@ -23,7 +23,7 @@ def testdata_posts(app, test_user):
         courses = []
         for n in range(0, 50):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
-                            subject='subject%d' % n, course_number='cn%d' % n)
+                            subject='sb%d' % n, course_number='cn%d' % n)
             courses.append(course)
             db.session.add(course)
 

@@ -43,7 +43,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     email = db.Column(db.String(128), nullable=False, unique=True)
-    password = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.String(256), nullable=False)
     is_verified = db.Column(db.Boolean, nullable=False, default=False)
     courses = db.relationship(
         'Course', secondary=usercourses, order_by='Course.name'

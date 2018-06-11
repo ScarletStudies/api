@@ -16,7 +16,7 @@ def testdata_user_courses(app, test_user):
 
         for n in range(0, 50):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
-                            subject='subject%d' % n, course_number='cn%d' % n)
+                            subject='sb%d' % n, course_number='cn%d' % n)
 
             user_courses.append(course)
 
@@ -26,7 +26,7 @@ def testdata_user_courses(app, test_user):
 
         for n in range(50, 100):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
-                            subject='subject%d' % n, course_number='cn%d' % n)
+                            subject='sb%d' % n, course_number='cn%d' % n)
 
             other_courses.append(course)
 

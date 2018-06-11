@@ -10,7 +10,7 @@ def testdata_courses(app):
         courses = []
         for n in range(0, 100):
             course = Course(name='name%d' % n, offering_unit='ou%d' % n,
-                            subject='subject%d' % n, course_number='cn%d' % n)
+                            subject='sb%d' % n, course_number='cn%d' % n)
             courses.append(course)
             db.session.add(course)
 

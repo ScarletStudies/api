@@ -133,7 +133,7 @@ def test_get_all_posts_sorted_by_latest_activity(app, client, test_user, testdat
 
 
 def test_get_all_posts_for_course(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
+    test_posts_json = testdata_posts[0]
     target_course = testdata_posts[1][0]
 
     # hit the api
@@ -143,17 +143,21 @@ def test_get_all_posts_for_course(app, client, test_user, testdata_posts):
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
     # posts should be limited to the target course
-    posts_json = [p for p in posts_json if p['course']
-                  ['id'] == target_course['id']]
+    test_posts_json = [p for p in test_posts_json if p['course']
+                       ['id'] == target_course['id']]
 
-    assert json_data == posts_json
+    # don't have to worry about limiting or sorting because there
+    # are few posts per course for this test
+
+    assert api_posts_json == test_posts_json
 
 
 def test_get_all_posts_by_category(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
+    test_posts_json = testdata_posts[0]
     target_category = testdata_posts[2][0]
 
     # hit the api
@@ -163,19 +167,22 @@ def test_get_all_posts_by_category(app, client, test_user, testdata_posts):
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
     # posts should be limited to the target category
-    posts_json = [p for p in posts_json if p['category']
-                  ['id'] == target_category['id']]
+    test_posts_json = [p for p in test_posts_json if p['category']
+                       ['id'] == target_category['id']]
 
-    assert posts_json == json_data
+    # don't have to worry about limiting or sorting because there
+    # are few posts per category for this test
+
+    assert test_posts_json == api_posts_json
 
 
 def test_get_all_posts_by_search(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
-
-    content_query = posts_json[0]['content']
+    test_posts_json = testdata_posts[0]
+    content_query = test_posts_json[0]['content']
 
     # hit the api
     rv = client.get('/posts/?query={}'.format(content_query),
@@ -184,20 +191,22 @@ def test_get_all_posts_by_search(app, client, test_user, testdata_posts):
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
-    # posts should be limited by search
-    posts_json = [p for p in posts_json if content_query in p['content']]
+    # posts should be limited by simple search
+    test_posts_json = [
+        p for p in test_posts_json if content_query in p['content']]
 
-    assert posts_json == json_data
+    assert test_posts_json == api_posts_json
 
 
 def test_get_all_posts_within_time_period(app, client, test_user, testdata_posts):
-    posts_json = testdata_posts[0]
+    test_posts_json = testdata_posts[0]
 
-    start_date = date(2018, 1, 1)
+    start_date = datetime(2018, 1, 1)
     start = '2018-1-1'
-    end_date = date(2020, 1, 1)
+    end_date = datetime(2020, 1, 1)
     end = '2020-1-1'
 
     # hit the api
@@ -207,23 +216,25 @@ def test_get_all_posts_within_time_period(app, client, test_user, testdata_posts
     assert rv.status_code == 200
 
     # returns the posts
-    json_data = rv.get_json()
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
 
     # posts should be limited by search
-    for pj in posts_json:
-        pj['due_date'] = date(*(int(i) for i in pj['due_date'].split('-')))
+    for pj in test_posts_json:
+        pj['due_date'] = datetime.strptime(pj['due_date'], '%Y-%m-%d')
 
     # need to convert json data due dates to datetime objects now too
-    for jd in json_data:
-        jd['due_date'] = date(*(int(i) for i in jd['due_date'].split('-')))
+    for jd in api_posts_json:
+        jd['due_date'] = datetime.strptime(jd['due_date'], '%Y-%m-%d')
 
-    posts_json = [p for p in posts_json if p['due_date'] <
-                  end_date and p['due_date'] >= start_date]
+    test_posts_json = [p for p in test_posts_json if p['due_date'] <
+                       end_date and p['due_date'] >= start_date]
 
     # sorts posts by time by default
-    posts_json = sorted(posts_json, key=lambda p: p['timestamp'], reverse=True)
+    test_posts_json = sorted(
+        test_posts_json, key=lambda p: p['timestamp'], reverse=True)
 
-    assert posts_json == json_data
+    assert test_posts_json == api_posts_json
 
 
 @pytest.mark.parametrize(
@@ -232,7 +243,6 @@ def test_get_all_posts_within_time_period(app, client, test_user, testdata_posts
         (1,),
         (2,),
         (3,),
-        (4,)
     )
 )
 def test_get_all_posts_with_limit(app, client, test_user, page, testdata_posts):
@@ -248,14 +258,14 @@ def test_get_all_posts_with_limit(app, client, test_user, page, testdata_posts):
     api_data_json = rv.get_json()
 
     # grab the posts and total count
-    api_posts_json, api_posts_count = api_data_json['items'], api_data_json['total']
+    api_posts_json = api_data_json['items']
 
     # sorts posts by time by default
     test_posts_json = sorted(
         test_posts_json, key=lambda p: p['timestamp'], reverse=True)
 
     # posts should be limited by limit and offset
-    test_posts_json = test_posts_json[page * 10: (page + 1) * 10]
+    test_posts_json = test_posts_json[(page - 1) * 20: page * 20]
 
     assert test_posts_json == api_posts_json
 

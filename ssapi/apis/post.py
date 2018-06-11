@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from flask import abort, request
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 
 from ssapi.db import db, Post, Course, Category, Semester, Comment
 
@@ -115,7 +115,12 @@ class PostListResource(Resource):
             filters.append(Post.category_id.in_(args['categories[]']))
 
         if args['query'] is not None:
-            filters.append(Post.content.like('%{}%'.format(args['query'])))
+            filters.append(
+                or_(
+                    Post.content.like('%{}%'.format(args['query'])),
+                    Post.title.like('%{}%'.format(args['query']))
+                )
+            )
 
         if args['start_date'] is not None:
             # because >= does not appear to work correctly, use > with a day before

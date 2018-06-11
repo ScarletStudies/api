@@ -180,7 +180,7 @@ def test_get_all_posts_by_category(app, client, test_user, testdata_posts):
     assert test_posts_json == api_posts_json
 
 
-def test_get_all_posts_by_search(app, client, test_user, testdata_posts):
+def test_get_all_posts_by_search_content(app, client, test_user, testdata_posts):
     test_posts_json = testdata_posts[0]
     content_query = test_posts_json[0]['content']
 
@@ -197,6 +197,27 @@ def test_get_all_posts_by_search(app, client, test_user, testdata_posts):
     # posts should be limited by simple search
     test_posts_json = [
         p for p in test_posts_json if content_query in p['content']]
+
+    assert test_posts_json == api_posts_json
+
+
+def test_get_all_posts_by_search_title(app, client, test_user, testdata_posts):
+    test_posts_json = testdata_posts[0]
+    title_query = test_posts_json[0]['title']
+
+    # hit the api
+    rv = client.get('/posts/?query={}'.format(title_query),
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the posts
+    api_data_json = rv.get_json()
+    api_posts_json = api_data_json['items']
+
+    # posts should be limited by simple search
+    test_posts_json = [
+        p for p in test_posts_json if title_query in p['title']]
 
     assert test_posts_json == api_posts_json
 

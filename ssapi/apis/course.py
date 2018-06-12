@@ -58,3 +58,13 @@ class CourseListResource(Resource):
         limit = args['limit']
 
         return Course.query.filter(*filters).order_by(order_by).limit(limit).all()
+
+
+@api.route('/<int:id>')
+@api.param('id', 'The course id')
+class CourseResource(Resource):
+    @api.doc('get_one_course')
+    @api.marshal_with(course_marshal_model)
+    @auth_required
+    def get(self, id):
+        return Course.query.get_or_404(id)

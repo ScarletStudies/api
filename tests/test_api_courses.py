@@ -73,3 +73,17 @@ def test_get_all_courses_by_search(app, client, test_user, testdata_courses, nam
 
     # confirm same data and order
     assert all(a == b for a, b in zip(names, json_data))
+
+
+def test_get_one_course(app, client, test_user, testdata_courses):
+    target_course = testdata_courses[0]
+
+    # hit the api
+    rv = client.get('/courses/%s' % target_course['id'],
+                    headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    api_course_json = rv.get_json()
+
+    assert api_course_json == target_course

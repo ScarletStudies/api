@@ -58,12 +58,12 @@ class User(db.Model):
         return cls.query.filter_by(email=email).one_or_none()
 
     @classmethod
-    def identify(cls, id):
-        return cls.query.get(id)
+    def identify(cls, email):
+        return cls.query.filter_by(email=email).one_or_none()
 
     @property
     def identity(self):
-        return self.id
+        return self.email
 
     def is_valid(self):
         return self.is_verified

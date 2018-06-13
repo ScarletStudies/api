@@ -1,11 +1,11 @@
 import bleach
 from datetime import datetime, timedelta
-from flask import abort, request
+from flask import abort, request, current_app
 from flask_praetorian import auth_required, current_user
 from flask_restplus import Namespace, Resource, fields, reqparse, marshal
 from sqlalchemy import desc, or_
 
-from ssapi.db import db, Post, Course, Category, Semester, Comment
+from ssapi.db import db, Post, Course, Category, Semester, Comment, User
 
 from .category import category_marshal_model
 from .comment import comment_marshal_model, new_comment_marshal_model
@@ -254,6 +254,31 @@ class CommentListResource(Resource):
         return post, 201
 
 
+@api.route('/<int:post_id>/comments/<int:comment_id>')
+@api.param('post_id', 'The post id')
+@api.param('comment_id', 'The comment id')
+class CommentResource(Resource):
+    @api.doc('delete_one_post')
+    @api.marshal_with(post_marshal_model)
+    @auth_required
+    def delete(self, post_id, comment_id):
+        comment = Comment.query.get_or_404(comment_id)
+        user = current_user()
+
+        if comment.author.id != user.id:
+            return 'Not Comment Owner', 403
+
+        deleted_user = User.query.filter_by(
+            email=current_app.config['DELETED_ACCOUNT_EMAIL']).one()
+
+        comment.content = '<p>[deleted]</p>'
+        comment.author = deleted_user
+
+        db.session.commit()
+
+        return Post.query.get(post_id)
+
+
 @api.route('/<int:id>/cheers/')
 @api.param('id', 'The post id')
 class CheerListResource(Resource):
@@ -280,3 +305,23 @@ class PostResource(Resource):
     @auth_required
     def get(self, id):
         return Post.query.get_or_404(id)
+
+    @api.doc('delete_one_post')
+    @api.marshal_with(post_marshal_model)
+    @auth_required
+    def delete(self, id):
+        post = Post.query.get_or_404(id)
+        user = current_user()
+
+        if post.author.id != user.id:
+            return 'Not Post Owner', 403
+
+        deleted_user = User.query.filter_by(
+            email=current_app.config['DELETED_ACCOUNT_EMAIL']).one()
+
+        post.content = '<p>[deleted]</p>'
+        post.author = deleted_user
+
+        db.session.commit()
+
+        return post

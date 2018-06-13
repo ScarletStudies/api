@@ -10,16 +10,6 @@ from ssapi.apis.comment import comment_marshal_model
 
 
 @pytest.fixture
-def special_deleted_account(app):
-    with app.app_context():
-        db.session.add(User(email=app.config['DELETED_ACCOUNT_EMAIL'],
-                            password='42',
-                            is_verified=False))
-
-        db.session.commit()
-
-
-@pytest.fixture
 def testdata_posts(app, test_user):
     with app.app_context():
         # create categories
@@ -142,11 +132,11 @@ def test_user_account_delete_with_content(app, client, test_user, testdata_posts
             # confirm that post and comment content is updated
             for post in posts_json:
                 found = Post.query.get(post['id'])
-                assert 'Removed as requested' in found.content
+                assert '[deleted]' in found.content
 
             for comment in comments_json:
                 found = Post.query.get(post['id'])
-                assert 'Removed as requested' in found.content
+                assert '[deleted]' in found.content
 
 
 def test_user_account_bad_password(app, client, test_user):

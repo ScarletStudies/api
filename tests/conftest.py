@@ -37,17 +37,50 @@ def test_user(app):
         password = 'password123'
 
         user = User(email=email,
-                    password=guard.encrypt_password('password123'),
+                    password=guard.encrypt_password(password),
                     is_verified=True)
 
         db.session.add(user)
         db.session.commit()
 
-        user.id
+        headers = {'Authorization': 'Bearer %s' % guard.encode_jwt_token(user)}
+
+        return TestUser(email=email,
+                        password=password,
+                        id=user.id,
+                        auth_headers=headers)
+
+
+@pytest.fixture
+def another_test_user(app):
+    TestUser = namedtuple(
+        'TestUser', ['email', 'password', 'id', 'auth_headers']
+    )
+
+    with app.app_context():
+        email = 'test_user_two@unittest.com'
+        password = 'password1234'
+
+        user = User(email=email,
+                    password=guard.encrypt_password(password),
+                    is_verified=True)
+
+        db.session.add(user)
+        db.session.commit()
 
         headers = {'Authorization': 'Bearer %s' % guard.encode_jwt_token(user)}
 
-    return TestUser(email=email,
-                    password=password,
-                    id=user.id,
-                    auth_headers=headers)
+        return TestUser(email=email,
+                        password=password,
+                        id=user.id,
+                        auth_headers=headers)
+
+
+@pytest.fixture
+def special_deleted_account(app):
+    with app.app_context():
+        db.session.add(User(email=app.config['DELETED_ACCOUNT_EMAIL'],
+                            password='42',
+                            is_verified=False))
+
+        db.session.commit()

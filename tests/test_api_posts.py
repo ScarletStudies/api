@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime, date
 from flask_restplus import marshal
-from ssapi.db import db, Post, Course, Category, Semester
+from ssapi.db import db, Post, Course, Category, Semester, Comment
 
 from ssapi.apis.post import post_marshal_model
 from ssapi.apis.category import category_marshal_model
@@ -433,3 +433,97 @@ def test_fail_get_one_post(app, client, test_user, testdata_posts):
                     headers=test_user.auth_headers)
 
     assert rv.status_code == 404
+
+
+@pytest.mark.usefixtures('special_deleted_account')
+def test_delete_post(app, client, test_user, testdata_posts):
+    target_post = testdata_posts[0][0]
+
+    # hit the api with correct credentials
+    # credentials match author of post
+    rv = client.delete('/posts/{}'.format(target_post['id']),
+                       headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the updated post
+    api_post_json = rv.get_json()
+
+    assert '[deleted]' in api_post_json['content']
+
+
+def test_delete_post_not_author(app, client, another_test_user, testdata_posts):
+    target_post = testdata_posts[0][0]
+
+    # hit the api with bad credentials
+    rv = client.delete('/posts/{}'.format(target_post['id']),
+                       headers=another_test_user.auth_headers)
+
+    assert rv.status_code == 403
+
+    # attempt to retrieve the post, should be retrieved unchanged
+    rv = client.get('/posts/{}'.format(target_post['id']),
+                    headers=another_test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    api_post_json = rv.get_json()
+
+    assert target_post == api_post_json
+
+
+@pytest.fixture
+def testdata_delete_comment(app, test_user, testdata_posts):
+    posts, courses, categories, semesters = testdata_posts
+
+    with app.app_context():
+        post = Post.query.get(posts[0]['id'])
+
+        # add a bunch of comments to a post
+        for i in range(10):
+            comment = Comment(content='%d' % i,
+                              post=post,
+                              author_id=test_user.id)
+            db.session.add(comment)
+
+        db.session.commit()
+
+        return marshal(post, post_marshal_model)
+
+
+@pytest.mark.usefixtures('special_deleted_account')
+def test_delete_comment(app, client, test_user, testdata_delete_comment):
+    target_post = testdata_delete_comment
+    target_comment = target_post['comments'][0]
+
+    # hit the api
+    rv = client.delete('/posts/{}/comments/{}'.format(target_post['id'], target_comment['id']),
+                       headers=test_user.auth_headers)
+
+    assert rv.status_code == 200
+
+    # returns the updated post
+    api_post_json = rv.get_json()
+    api_comment_json = api_post_json['comments'][0]
+
+    assert '[deleted]' in api_comment_json['content']
+
+
+def test_delete_comment_not_author(app, client, another_test_user, testdata_delete_comment):
+    target_post = testdata_delete_comment
+    target_comment = target_post['comments'][0]
+
+    # hit the api
+    rv = client.delete('/posts/{}/comments/{}'.format(target_post['id'], target_comment['id']),
+                       headers=another_test_user.auth_headers)
+
+    assert rv.status_code == 403
+
+    # confirm comment is not deleted
+    rv = client.get('/posts/{}'.format(target_post['id']),
+                    headers=another_test_user.auth_headers)
+
+    api_post_json = rv.get_json()
+    api_comment_json = api_post_json['comments'][0]
+
+    assert target_comment['content'] == api_comment_json['content']

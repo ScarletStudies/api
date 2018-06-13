@@ -67,7 +67,7 @@ def user_deletion(email, remove_content):
 
     # update content of posts and comments by user
     # to change author to special 'deleted' account
-    message = '<p>Removed as requested by user</p>'
+    deleted_message = '<p>[deleted]</p>'
     special_account = User.query.filter_by(
         email=current_app.config['DELETED_ACCOUNT_EMAIL']).one()
 
@@ -77,7 +77,7 @@ def user_deletion(email, remove_content):
         post.author = special_account
 
         if remove_content:
-            post.content = message
+            post.content = deleted_message
 
     comments = Comment.query.filter_by(author=user).all()
 
@@ -85,10 +85,12 @@ def user_deletion(email, remove_content):
         comment.author = special_account
 
         if remove_content:
-            comment.content = message
+            comment.content = deleted_message
 
     # delete the user account
     db.session.delete(user)
+
+    # sync the db
     db.session.commit()
 
     # finally, send an email to the user confirming account deletion

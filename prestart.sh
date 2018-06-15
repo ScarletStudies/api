@@ -6,6 +6,4 @@ sleep 5;
 # initialize the database
 flask db upgrade
 
-# seed test data
-flask seed_test_data
 

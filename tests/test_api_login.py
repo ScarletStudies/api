@@ -91,7 +91,7 @@ def test_forgot_password(app, client, test_user):
 
             # grab the jwt from the email
             result = re.search(
-                r'https:\/\/www\.scarletstudies\.org\/forgot\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
+                r'\/forgot\/([a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+)',
                 outbox[-1].body
             )
 

@@ -29,9 +29,7 @@ def verification_email(email):
         current_app.config['SECRET_KEY'],
         algorithm='HS256'
     ).decode('utf-8')
-    verify_url = 'https://www.scarletstudies.org/verify/{}'.format(
-        encoded
-    )
+    verify_url = '{}/verify/{}'.format(current_app.config['FRONTEND_URL'], encoded)
     content = 'Please verify your account. You will not be able to log in until you do. {}'.format(
         verify_url
     )
@@ -52,8 +50,8 @@ def forgot_password_email(email):
         current_app.config['SECRET_KEY'],
         algorithm='HS256'
     ).decode('utf-8')
-    verify_url = 'https://www.scarletstudies.org/forgot/' + encoded
-    content = 'You forgot your password. Please follow the link to access your account and change your password. ' + verify_url
+    forgot_url = '{}/forgot/{}'.format(current_app.config['FRONTEND_URL'], encoded)
+    content = 'You forgot your password. Please follow the link to access your account and change your password. ' + forgot_url
     message = Message(subject,
                       recipients=[to_email],
                       body=content)

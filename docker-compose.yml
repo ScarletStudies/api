@@ -5,7 +5,7 @@ services:
       SSAPI_SETTINGS: "/app/env/docker.env"
     build: .
     ports:
-     - "8083:80"
+     - "8084:80"
     restart: always
   worker:
     environment:

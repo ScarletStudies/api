@@ -6,13 +6,16 @@ services:
     build: .
     ports:
      - "8083:80"
+    restart: always
   worker:
     environment:
       SSAPI_SETTINGS: "/app/env/docker.env"
     build: .
     command: flask rq worker
+    restart: always
   redis:
     image: redis:alpine
+    restart: always
   db:
     image: mysql:5.7
     restart: always

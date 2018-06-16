@@ -14,5 +14,7 @@ services:
     env_file:
       - ./env/db.e2e.env
     environment:
-      E2E_TESTING: 1
+      E2E_TESTING: "e2e"
+    ports:
+      - "33060:3306"
     

@@ -20,6 +20,10 @@ migrate = Migrate(db=db)
 def init_app(app):
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+    # thanks to https://stackoverflow.com/a/35819857
+    app.config['SQLALCHEMY_POOL_SIZE'] = 100
+    app.config['SQLALCHEMY_POOL_RECYCLE'] = 280
+
     db.init_app(app)
     migrate.init_app(app)
 
